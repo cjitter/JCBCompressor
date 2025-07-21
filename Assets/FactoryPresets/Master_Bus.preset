@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PARAMETERS>
+  <PARAM id="a_TRIM" value="0.0"/>
+  <PARAM id="b_THD" value="-20.0"/>
+  <PARAM id="c_RATIO" value="1.5"/>
+  <PARAM id="d_ATK" value="30.0"/>
+  <PARAM id="e_REL" value="300.0"/>
+  <PARAM id="f_ALGO" value="2.0"/>
+  <PARAM id="g_REACT" value="0.0"/>
+  <PARAM id="h_KNEE" value="10.0"/>
+  <PARAM id="i_MAKEUP" value="0.0"/>
+  <PARAM id="j_HPF" value="20.0"/>
+  <PARAM id="k_LPF" value="20000.0"/>
+  <PARAM id="l_SC" value="0.0"/>
+  <PARAM id="m_SOLOSC" value="0.0"/>
+  <PARAM id="n_LOOKAHEAD" value="2.0"/>
+  <PARAM id="o_DRYWET" value="1.0"/>
+  <PARAM id="p_BYPASS" value="0.0"/>
+  <PARAM id="r_KEY" value="0.0"/>
+  <PARAM id="s_AUTORELEASE" value="0.5"/>
+  <PARAM id="u_SOFTCLIP" value="0.2"/>
+  <PARAM id="v_DELTA" value="0.0"/>
+  <PARAM id="w_PARALLEL" value="0.0"/>
+  <PARAM id="x_AUTOGAIN" value="0.5"/>
+  <PARAM id="y_SCTRIM" value="0.0"/>
+  <PARAM id="z_SMOOTH" value="0.5"/>
+</PARAMETERS>

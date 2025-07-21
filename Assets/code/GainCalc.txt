@@ -1,0 +1,52 @@
+// =============================================================================
+// GAIN CALCULATION BLOCK - Cálculo de Reducción de Ganancia
+// =============================================================================
+// Calcula la reducción de ganancia usando soft knee compression
+//
+// ENTRADAS:
+// - in1: Envolvente en dB (desde bloque Detector)
+//
+// SALIDA:
+// - out1: Gain reduction en dB (valores negativos = reducción)
+
+// FUNCIÓN SOFT KNEE
+softkneeLinear(xg, T, R, W) {
+    if((2 * (xg - T)) < (-1 * W)) {
+        return xg;
+    }
+    else if((2 * abs(xg - T)) <= W) {
+        return (T - (W / 2)) + (((xg - T + (W / 2)) * (1 + (1 / R))) / 2);
+    }
+    else if((2 * (xg - T)) > W) {
+        return T + ((xg - T) / R);
+    }
+}
+
+// PARÁMETROS
+Param b_THD(-12, min=-60, default=-12, max=0);        // Threshold (dB)
+Param c_RATIO(4, min=1, default=4, max=10);           // Compression ratio
+Param h_KNEE(0, min=0, default=0, max=30);            // Knee width (dB)
+
+// HISTORIAS para smoothing
+History thresholdHist(0);
+
+// =============================================================================
+// SMOOTHING DE PARÁMETROS
+// =============================================================================
+smoothThreshold = thresholdHist * 0.999 + b_THD * 0.001;
+thresholdHist = fixdenorm(smoothThreshold);
+
+// =============================================================================
+// CÁLCULO DE COMPRESIÓN
+// =============================================================================
+
+// Calcular output después de compresión
+compressed_level = softkneeLinear(in1, smoothThreshold, c_RATIO, h_KNEE);
+
+// Gain reduction = diferencia entre entrada y salida
+gain_reduction_db = compressed_level - in1;
+
+// =============================================================================
+// SALIDA
+// =============================================================================
+out1 = gain_reduction_db;

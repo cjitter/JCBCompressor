@@ -1,0 +1,236 @@
+// =============================================================================
+// DETECTOR BLOCK - Detección de Envolvente
+// =============================================================================
+// Sistema de detección con 3 algoritmos: Sharp, Classic, Slow
+// Incluye Peak/RMS mixing, auto-release y extra smoothing
+//
+// ENTRADA:
+// - in1: Señal filtrada de sidechain (desde bloque Filters)
+//
+// SALIDA:
+// - out1: Envolvente en dB para cálculo de ganancia
+
+// PARÁMETROS
+Param d_ATK(5, min=0.1, default=5, max=250);          // Attack time (ms)
+Param e_REL(30, min=0.1, default=30, max=1000);      // Release time (ms)
+Param f_ALGO(1, min=0, default=1, max=2);            // Algorithm (0=Sharp, 1=Classic, 2=Slow)
+Param g_REACT(0, min=0, default=0, max=1);           // Peak/RMS mix (0=Peak, 1=RMS)
+Param s_AUTORELEASE(0, min=0, default=0, max=1);     // Auto release enable (simplificado)
+Param z_SMOOTH(0, min=0, default=0, max=1);          // Extra smoothing amount
+
+// HISTORIAS Y DELAYS
+Delay rmsDelay(500);                                  // Buffer para RMS sliding
+History rmsSum(0);
+History prevEnvelope(0);
+
+// Nueva historia para detección de transientes (auto-release simplificado)
+History transientDetector(0);                         // Detector de transientes acumulado
+
+// Sharp detector
+History releaseHistSharp(0);
+History attackHistSharp(0);
+History extraSmoothHistSharp(0);
+
+// Classic detector
+History peakEnvClassic(0);
+History rmsSqClassic(0);
+History histRmsClassic(0);
+History extraSmoothHistClassic(0);
+
+// Slow detector
+History peakEnvSlow(0);
+History rmsSqSlow(0);
+History histRmsSlow(0);
+History extraSmoothHistSlow(0);
+
+// =============================================================================
+// COEFICIENTES DE TIEMPO
+// =============================================================================
+attack_ms = max(0.05, d_ATK);
+release_ms = max(0.1, e_REL);
+attack_coeff = exp(-1 / (attack_ms * samplerate * 0.001));
+current_signal_abs = abs(in1);
+signal_change = abs(current_signal_abs - prevEnvelope);
+
+// =============================================================================
+// NUEVO SISTEMA AUTO-RELEASE SIMPLIFICADO
+// =============================================================================
+// Declarar la variable antes del condicional
+final_release_time = release_ms;  // Por defecto usar release manual
+
+if(s_AUTORELEASE > 0.5) {
+    // Sistema automático activado
+    
+    // 1. Detección mejorada de transientes
+    // Usar un umbral relativo al nivel actual para mejor detección
+    relative_threshold = max(0.01, current_signal_abs * 0.3);  // 30% del nivel actual
+    is_transient = signal_change > relative_threshold ? 1 : 0;
+    
+    // 2. Acumulador más rápido para mejor respuesta
+    // Usar diferentes velocidades para subida y bajada
+    program_smooth = 0.995;  // Valor por defecto
+    if(is_transient > 0.5) {
+        // Transiente detectado - respuesta rápida
+        program_smooth = 0.95;  // ~20 muestras para detectar percusivo
+    }
+    
+    transientDetector = (transientDetector * program_smooth) + (is_transient * (1 - program_smooth));
+    
+    // 3. Rangos de release ajustados con curva no lineal
+    // Usar pow() para hacer la transición más musical
+    transient_shaped = pow(transientDetector, 1.5);  // Curva exponencial para más separación
+    percussive_release = 15;     // 15ms para material muy percusivo
+    sustained_release = 500;     // 500ms para material sostenido
+    
+    // 4. Interpolación basada en el contenido detectado
+    base_release = mix(sustained_release, percussive_release, transient_shaped);
+    
+    // 5. Modulación dinámica mejorada
+    // Considerar tanto el cambio como el nivel absoluto
+    level_factor = scale(current_signal_abs, 0, 0.5, 1, 0.6, 1);  // Señales fuertes = release más rápido
+    change_factor = scale(signal_change, 0, 0.2, 1, 0.4, 1);      // Cambios grandes = release más rápido
+    instant_mod = min(level_factor, change_factor);               // Usar el más agresivo
+    
+    // 6. Release final
+    final_release_time = base_release * instant_mod;
+    
+    // 7. Límites de seguridad con histéresis suave
+    // Evitar cambios bruscos entre samples consecutivos
+    release_change_limit = 0.7;  // Máximo 70% de cambio entre samples
+    if(prevEnvelope > 0) {
+        max_change = final_release_time * release_change_limit;
+        final_release_time = clamp(final_release_time,
+                                  prevEnvelope - max_change,
+                                  prevEnvelope + max_change);
+    }
+    final_release_time = clamp(final_release_time, 10, 600);
+}
+release_coeff = exp(-1 / (final_release_time * samplerate * 0.001));
+prevEnvelope = current_signal_abs;
+
+// =============================================================================
+// RMS SHARP (para ALGO 0) - Sliding RMS con ventana corta
+// =============================================================================
+rms_window = max(1, floor(25 * (samplerate / 48000)));
+rms_window_inv = 1 / rms_window;
+input_squared = in1 * in1;
+oldest_sq = rmsDelay.read(rms_window, interp="none");
+rms_sum_new = (input_squared + rmsSum) - oldest_sq;
+rms_sum_clipped = max(0, rms_sum_new);
+rms_value_sharp = sqrt(rms_sum_clipped * rms_window_inv);
+rmsSum = rms_sum_clipped;
+rmsDelay.write(input_squared);
+
+// =============================================================================
+// ALGORITMO 0: SHARP DETECTOR - Respuesta rápida y precisa
+// =============================================================================
+peakEnvSharp = abs(in1);
+env_mix_sharp = mix(peakEnvSharp, rms_value_sharp, g_REACT);
+release_env = releaseHistSharp * release_coeff;
+env_post_release = max(env_mix_sharp, release_env);
+attack_env = attackHistSharp * attack_coeff;
+attack_mix = ((1 - attack_coeff) * env_post_release) + (attack_coeff * attack_env);
+sharpEnvelopeFinal = max(attack_mix, 0.000001);
+releaseHistSharp = fixdenorm(env_post_release);
+attackHistSharp = fixdenorm(attack_mix);
+
+// =============================================================================
+// ALGORITMO 1: CLASSIC DETECTOR - Comportamiento tradicional
+// =============================================================================
+input_abs_classic = abs(in1);
+rms_coeff = exp(-1 / (50 * samplerate * 0.001));
+
+// Detector de picos con attack/release separados
+if(input_abs_classic > peakEnvClassic) {
+    peakEnvClassic = ((1 - attack_coeff) * input_abs_classic) + (attack_coeff * peakEnvClassic);
+}
+else {
+    peakEnvClassic = ((1 - release_coeff) * input_abs_classic) + (release_coeff * peakEnvClassic);
+}
+
+// RMS exponencial independiente
+input_sq_classic = in1 * in1;
+rmsSqClassic = (rmsSqClassic * rms_coeff) + (input_sq_classic * (1 - rms_coeff));
+rms_env_classic_raw = sqrt(rmsSqClassic);
+
+// Envolvente para RMS con attack/release propios
+if(rms_env_classic_raw > histRmsClassic) {
+    histRmsClassic = ((1 - attack_coeff) * rms_env_classic_raw) + (attack_coeff * histRmsClassic);
+}
+else {
+    histRmsClassic = ((1 - release_coeff) * rms_env_classic_raw) + (release_coeff * histRmsClassic);
+}
+
+env_mix_classic = mix(peakEnvClassic, histRmsClassic, g_REACT);
+
+// =============================================================================
+// ALGORITMO 2: SLOW DETECTOR - Respuesta suave y musical
+// =============================================================================
+input_abs_slow = abs(in1);
+rms_coeff_slow = exp(-1 / (200 * samplerate * 0.001));
+
+// Detector de picos con attack/release separados
+if(input_abs_slow > peakEnvSlow) {
+    peakEnvSlow = ((1 - attack_coeff) * input_abs_slow) + (attack_coeff * peakEnvSlow);
+}
+else {
+    peakEnvSlow = ((1 - release_coeff) * input_abs_slow) + (release_coeff * peakEnvSlow);
+}
+
+// RMS exponencial lento
+input_sq_slow = in1 * in1;
+rmsSqSlow = (rmsSqSlow * rms_coeff_slow) + (input_sq_slow * (1 - rms_coeff_slow));
+rms_env_slow_raw = sqrt(rmsSqSlow);
+
+// Envolvente para RMS con attack/release propios
+if(rms_env_slow_raw > histRmsSlow) {
+    histRmsSlow = ((1 - attack_coeff) * rms_env_slow_raw) + (attack_coeff * histRmsSlow);
+}
+else {
+    histRmsSlow = ((1 - release_coeff) * rms_env_slow_raw) + (release_coeff * histRmsSlow);
+}
+
+env_mix_slow = mix(peakEnvSlow, histRmsSlow, g_REACT);
+
+// =============================================================================
+// EXTRA SMOOTHING POST-DETECCIÓN - Suavizado adicional configurable
+// =============================================================================
+smooth_amount_shaped = pow(z_SMOOTH, 2.5);
+smooth_time_ms = mix(0.001, 100, smooth_amount_shaped);
+extra_smooth_coeff = exp(-1 / (smooth_time_ms * samplerate * 0.001));
+
+// Algoritmo 0 - Salida en dB con smoothing opcional
+expr_algo0 = atodb(sharpEnvelopeFinal);
+if(z_SMOOTH >= 0.001) {
+    extraSmoothedSharpEnv = (extraSmoothHistSharp * extra_smooth_coeff) + (sharpEnvelopeFinal * (1 - extra_smooth_coeff));
+    extraSmoothHistSharp = fixdenorm(extraSmoothedSharpEnv);
+    expr_algo0 = atodb(max(extraSmoothedSharpEnv, 0.000001));
+}
+
+// Algoritmo 1 - Salida en dB con smoothing opcional
+expr_algo1 = atodb(max(env_mix_classic, 0.000001));
+if(z_SMOOTH >= 0.001) {
+    extraSmoothedClassicEnv = (extraSmoothHistClassic * extra_smooth_coeff) + (env_mix_classic * (1 - extra_smooth_coeff));
+    extraSmoothHistClassic = fixdenorm(extraSmoothedClassicEnv);
+    expr_algo1 = atodb(max(extraSmoothedClassicEnv, 0.000001));
+}
+
+// Algoritmo 2 - Salida en dB con smoothing opcional
+expr_algo2 = atodb(max(env_mix_slow, 0.000001));
+if(z_SMOOTH >= 0.001) {
+    extraSmoothedSlowEnv = (extraSmoothHistSlow * extra_smooth_coeff) + (env_mix_slow * (1 - extra_smooth_coeff));
+    extraSmoothHistSlow = fixdenorm(extraSmoothedSlowEnv);
+    expr_algo2 = atodb(max(extraSmoothedSlowEnv, 0.000001));
+}
+
+// =============================================================================
+// SELECTOR Y MORPHING DE ALGORITMOS - Transición continua sin saltos
+// =============================================================================
+detector_control = clamp(f_ALGO, 0, 2);
+fade_amount = detector_control - 1;
+envelope_out = detector_control <= 1 ? mix(expr_algo0, expr_algo1, detector_control) : mix(expr_algo1, expr_algo2, fade_amount);
+
+// =============================================================================
+// SALIDA
+// =============================================================================
+out1 = envelope_out;
