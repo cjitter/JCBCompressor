@@ -1,0 +1,110 @@
+// =============================================================================
+// INPUT/TRIM BLOCK - Procesamiento de Entrada Principal y Sidechain
+// =============================================================================
+// Este bloque maneja las 4 entradas del compresor:
+// - in1/in2: Señal principal L/R a comprimir
+// - in3/in4: Señal de sidechain L/R (para external key)
+//
+// IMPORTANTE: Este bloque también inicializa los delays de lookahead
+
+// PARÁMETROS
+Param a_TRIM(-12, min=-12, default=0, max=12);        // Input trim gain (dB)
+Param y_SCTRIM(-12, min=-12, default=0, max=12);      // Sidechain input trim (dB)
+Param r_KEY(0, min=0, default=0, max=1);              // External key input mix
+
+// HISTORIAS (para smoothing anti-click)
+History trimHistory(0);
+History sidechainTrimHistory(0);
+History keyMixHistory(0);
+
+// DELAYS DE LOOKAHEAD (necesarios para escribir las señales)
+Delay leftOutputDelay(0.025*samplerate);
+Delay rightOutputDelay(0.025*samplerate);
+Delay sidechainWriteDelay(0.025*samplerate);
+Delay sidechainTapDelay(0.025*samplerate);
+
+// CONSTANTES
+SMOOTH_HISTORY_FACTOR = 0.999;
+SMOOTH_PARAM_FACTOR = 0.001;
+
+// =============================================================================
+// SMOOTHING Y CONVERSIÓN
+// =============================================================================
+
+// Trim Principal
+smoothTrimGain = trimHistory * SMOOTH_HISTORY_FACTOR + a_TRIM * SMOOTH_PARAM_FACTOR;
+trimHistory = fixdenorm(smoothTrimGain);
+trimGainLinear = dbtoa(smoothTrimGain);
+
+// Sidechain Trim
+smoothSidechainTrimGain = sidechainTrimHistory * SMOOTH_HISTORY_FACTOR + y_SCTRIM * SMOOTH_PARAM_FACTOR;
+sidechainTrimHistory = fixdenorm(smoothSidechainTrimGain);
+sidechainTrimGainLinear = dbtoa(smoothSidechainTrimGain);
+
+// Key Mix
+smoothKeyMix = keyMixHistory * SMOOTH_HISTORY_FACTOR + r_KEY * SMOOTH_PARAM_FACTOR;
+keyMixHistory = fixdenorm(smoothKeyMix);
+
+// =============================================================================
+// APLICACIÓN DE GANANCIA
+// =============================================================================
+
+// Aplicar trim a entradas principales
+leftTrimmed = in1 * trimGainLinear;
+rightTrimmed = in2 * trimGainLinear;
+
+// Salidas de monitoreo
+out4 = leftTrimmed;
+out5 = rightTrimmed;
+
+// Crear señal mono de entrada principal
+mainSignalMono = (leftTrimmed + rightTrimmed) * 0.707;
+
+// Guardar referencia de trim
+trimGainReference = trimGainLinear;
+
+// Aplicar trim a entradas de sidechain
+sidechainTrimReference = sidechainTrimGainLinear;
+leftSidechainTrimmed = in3 * sidechainTrimReference;
+rightSidechainTrimmed = in4 * sidechainTrimReference;
+
+// Salidas de monitoreo sidechain
+out6 = leftSidechainTrimmed;
+out7 = rightSidechainTrimmed;
+
+// Crear señal mono de sidechain
+sidechainSignalMono = (leftSidechainTrimmed + rightSidechainTrimmed) * 0.707;
+
+// Key mixing
+keyMixedSignal = mix(mainSignalMono, sidechainSignalMono, smoothKeyMix);
+
+// =============================================================================
+// COMPENSACIÓN Y NORMALIZACIÓN PARA SIDECHAIN
+// =============================================================================
+// Esto es importante para evitar saltos cuando se activa SOLO SC
+
+unitaryReference = 1;
+trimCompensationFactor = unitaryReference / trimGainReference;
+sidechainMixedSignal = keyMixedSignal * 0.707;
+
+// Esta señal se usará más adelante para normalización
+sidechainDetectionSignal = sidechainMixedSignal;
+sidechainTrimCompensated = sidechainDetectionSignal * trimCompensationFactor;
+normalizedSidechainSignal = sidechainTrimCompensated;
+
+// =============================================================================
+// ESCRITURA EN DELAYS DE LOOKAHEAD
+// =============================================================================
+// CRÍTICO: Las señales se escriben aquí para el sistema de lookahead
+
+leftOutputDelay.write(leftTrimmed);
+rightOutputDelay.write(rightTrimmed);
+sidechainWriteDelay.write(normalizedSidechainSignal);
+sidechainTapDelay.write(normalizedSidechainSignal);
+
+// =============================================================================
+// SALIDAS
+// =============================================================================
+out1 = leftTrimmed;                    // Para Gain Application
+out2 = rightTrimmed;                   // Para Gain Application
+out3 = sidechainMixedSignal;          // Para Filters (señal de detección)

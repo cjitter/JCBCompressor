@@ -1,0 +1,57 @@
+// =============================================================================
+// GAIN APPLICATION BLOCK - Aplicación de Reducción de Ganancia
+// =============================================================================
+// Aplica la reducción de ganancia calculada a las señales de audio
+// Incluye sistema de lookahead delay
+//
+// ENTRADAS:
+// - in1: Señal audio L (desde Input/Trim)
+// - in2: Señal audio R (desde Input/Trim)
+// - in3: Gain reduction en dB (desde Gain Calculation)
+//
+// SALIDAS:
+// - out1: Señal L comprimida
+// - out2: Señal R comprimida
+// - out3: Factor de gain reduction lineal (para medidor)
+
+// PARÁMETROS
+Param n_LOOKAHEAD(0, min=0, default=0, max=10);       // Lookahead time (ms)
+
+// DELAYS para lookahead
+Delay leftDelay(0.025 * samplerate);
+Delay rightDelay(0.025 * samplerate);
+
+// =============================================================================
+// LOOKAHEAD - SIN SMOOTHING
+// =============================================================================
+// Convertir lookahead a muestras (sin suavizar para evitar pitch shifting)
+lookahead_samples = mstosamps(n_LOOKAHEAD);
+
+// =============================================================================
+// SISTEMA DE LOOKAHEAD
+// =============================================================================
+// Escribir señales actuales en los delays
+leftDelay.write(in1);
+rightDelay.write(in2);
+
+// Leer señales retrasadas
+left_delayed = leftDelay.read(lookahead_samples, interp="linear");
+right_delayed = rightDelay.read(lookahead_samples, interp="linear");
+
+// =============================================================================
+// APLICACIÓN DE GAIN REDUCTION
+// =============================================================================
+// Convertir gain reduction de dB a lineal
+gain_reduction_linear = dbtoa(in3);
+
+// Aplicar reducción a las señales retrasadas
+left_compressed = left_delayed * gain_reduction_linear;
+right_compressed = right_delayed * gain_reduction_linear;
+
+// =============================================================================
+// SALIDAS
+// =============================================================================
+out1 = left_compressed;
+out2 = right_compressed;
+out3 = gain_reduction_linear;  // Para medidor UI
+out4 = lookahead_samples;       // Lookahead en muestras para sincronización

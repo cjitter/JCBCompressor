@@ -1,33 +1,8 @@
 # JCBCompressor
 
-![JCBCompressor Interface](screenshot.png)
+![JCBCompressor Interface](Assets/screenshot.png)
 
-Plugin compresor de audio desarrollado con Gen~ Plugin Export (Cycling '74) y el framework C++ JUCE. Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~ y usados en las clases de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/).
-
-## Características
-
-- **Compresión con DSP Gen~** de Max/MSP
-- **Procesamiento estéreo en modo Link**
-- **Tres modos de detección**: Sliding RMS, Exponential RMS y Slow RMS
-- **Interpolación continua** entre detección de pico y RMS
-- **Control de suavizado adicional** (smoothing) para ajuste fino de la respuesta
-- **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y sidechain
-- **Controles estándar**: Threshold, Ratio, Knee, Attack, Release, Auto-Release y más
-- **Soft clipping** integrado
-- **Procesamiento sidechain** con filtros dedicados
-- **Visualización** con display de forma de onda y medidores
-- **Menú de presets**
-- **Bypass interno** independiente del DAW
-- **Monitorización delta** (diferencia entrada/salida), solo de filtros sidechain
-- **Formatos soportados**: VST3, AU y AAX
-
-## Requisitos del Sistema
-
-### macOS
-- macOS 10.13 o posterior
-- Procesador Intel o Apple Silicon
-- DAW compatible con VST3, AU o AAX
-- Probado en: Pro Tools, Reaper, Logic, Ableton Live y Bitwig
+Plugin compresor de audio desarrollado con gen~ Plugin Export (Cycling '74) y el framework C++ JUCE. Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~, y usados como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/).
 
 ## Instalación
 
@@ -40,6 +15,14 @@ Plugin compresor de audio desarrollado con Gen~ Plugin Export (Cycling '74) y el
    - AAX: `/Library/Application Support/Avid/Audio/Plug-Ins/`
 
 *Nota: El DMG está firmado y notarizado para macOS.*
+
+## Requisitos del Sistema
+
+### macOS
+- macOS 10.13 o posterior
+- Procesador Intel o Apple Silicon
+- DAW compatible con VST3, AU o AAX
+- Probado en: Pro Tools, Reaper, Logic, Ableton Live y Bitwig
 
 ## Compilación desde Código Fuente
 
@@ -93,6 +76,23 @@ JCBCompressor/
 └── cmake-build-*/         # Directorios de compilación (gestionados por CLion)
 ```
 
+## Características
+
+- **Compresión con DSP Gen~** de Max/MSP
+- **Procesamiento estéreo en modo Link**
+- **Tres modos de detección**: Sliding RMS, Exponential RMS y Slow RMS
+- **Interpolación continua** entre detección de pico y RMS
+- **Control de suavizado adicional** (smoothing) para ajuste fino de la respuesta
+- **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y sidechain
+- **Controles estándar**: Threshold, Ratio, Knee, Attack, Release, Auto-Release y más
+- **Soft clipping** integrado
+- **Procesamiento sidechain** con filtros dedicados
+- **Visualización** con display de forma de onda y medidores
+- **Menú de presets**
+- **Bypass interno** independiente del DAW
+- **Monitorización delta** (diferencia entrada/salida), solo de filtros sidechain
+- **Formatos soportados**: VST3, AU y AAX
+
 ## Uso
 
 ### Operación Básica
@@ -117,12 +117,6 @@ JCBCompressor/
 - **Bypass interno**: Independiente del bypass del DAW
 - **Monitorización**: Escucha solo la diferencia entre entrada y salida y solo filtros
 
-## Licencia
-
-JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
-
-Consulta [LICENSE](LICENSE) para más detalles.
-
 ## Por Hacer
 
 - Migrar de Plugin Export a la exportación C++ de RNBO
@@ -135,6 +129,12 @@ Consulta [LICENSE](LICENSE) para más detalles.
 
 - **Repositorio GitHub**: [https://github.com/cjitter/JCBCompressor](https://github.com/cjitter/JCBCompressor)
 - **Documentación**: Ver [NOTAS.md](NOTAS.md) para información adicional
+
+## Licencia
+
+JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
+
+Consulta [LICENSE](LICENSE) para más detalles.
 
 ---
 
