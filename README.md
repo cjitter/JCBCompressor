@@ -44,10 +44,7 @@ Plugin compresor de audio desarrollado con Gen~ Plugin Export (Cycling '74) y el
 ## Compilación desde Código Fuente
 
 ### Requisitos Previos
-- CMake 3.20 o posterior
-- Compilador compatible con C++20
-- Git
-- Generador Ninja (para mejor compatibilidad)
+- Git, CMake 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
 - JUCE 8.0.8 (se descarga automáticamente via FetchContent)
 - **AAX SDK** (requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid)
 
@@ -64,11 +61,11 @@ cd JCBCompressor
 3. **Compilación**:
 ```bash
 # Compilación Debug
-cmake -B cmake-build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build cmake-build-debug
 
 # Compilación Release
-cmake -B cmake-build-release -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build cmake-build-release
 ```
 
@@ -100,23 +97,25 @@ JCBCompressor/
 
 ### Operación Básica
 1. **Threshold**: Establece el nivel al que comienza la compresión (-60 a 0 dB)
-2. **Ratio**: Ajusta la cantidad de compresión (1:1 a 100:1)
-3. **Attack**: Controla qué tan rápido actúa la compresión (0.0 a 30.0 ms)
-4. **Release**: Define qué tan rápido se libera la compresión (5.0 a 1000.0 ms)
-5. **Knee**: Ajusta la transición hacia la compresión (0.0 a 20.0 dB)
-6. **Gain**: Ganancia de compensación para recuperar el nivel reducido
+2. **Ratio**: Ajusta la cantidad de compresión (1:1 a 20:1)
+3. **Attack**: Controla qué tan rápido actúa la compresión (0.1 a 250 ms)
+4. **Release**: Define qué tan rápido se libera la compresión (0.1 a 1000 ms)
+5. **Knee**: Ajusta la transición hacia la compresión (0 a 30 dB)
+6. **Makeup gain**: Ganancia de compensación para recuperar el nivel reducido (-12 +12 dB)
 
 ### Características Adicionales
-- **Sidechain**: Usa una señal externa para la detección de compresión
-- **Filtros**: Butterworth de 2º y 4º orden para compresión dependiente de frecuencia
-- **Modos de Detección**: 
-  - Sliding RMS, Exponential RMS y Slow RMS
+- **Modos de detección**:
+  - Sharp (sliding RMS), Expo RMS (clásico) y Slow RMS
   - Interpolación continua entre detección de pico y RMS
   - Control de smoothing adicional para personalizar la respuesta
-- **Compresión Paralela**: Mezcla las señales comprimida y seca
+- **Compresión con softknee**: cálculo de reducción con softknee lineal primer orden
+- **Sidechain eterno**: Usa una señal externa para la detección de compresión
+- **Filtros**: Butterworth de 2º y 4º orden para compresión dependiente de frecuencia
+- **Auto gain**: hasta el 70% recuperación de ganancia, funciona en conjunto con el makeup gain
+- **Compresión paralela**: sumatorio señale seca con señal comprimida
+- **Softcliping**: softclipig después de auto gain, makeup gain y compresión pararlela
 - **Bypass interno**: Independiente del bypass del DAW
-- **Monitoreo Delta**: Escucha solo la diferencia entre entrada y salida
-- **Monitoreo Solo de Filtros Sidechain**: Escucha aislada de la cadena sidechain filtrada
+- **Monitorización**: Escucha solo la diferencia entre entrada y salida y solo filtros
 
 ## Licencia
 
@@ -139,4 +138,4 @@ Consulta [LICENSE](LICENSE) para más detalles.
 
 ---
 
-*JCBCompressor v0.9.99 beta - Un plugin compresor de código abierto con Gen~ en su corazón*
+*JCBCompressor v0.9.99 beta*
