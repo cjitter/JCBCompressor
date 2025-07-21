@@ -2,7 +2,7 @@
 
 ![JCBCompressor Interface](screenshot.png)
 
-Plugin compresor de audio desarrollado con Gen~ Plugin Export (Cycling '74) y el framework C++ JUCE. Este plugin es parte de un paquete de plugins de audio básicos hechos en Gen~ que uso en las clases de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres MCE y MCAV.
+Plugin compresor de audio desarrollado con Gen~ Plugin Export (Cycling '74) y el framework C++ JUCE. Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~ y usados en las clases de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/).
 
 ## Características
 
