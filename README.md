@@ -2,7 +2,7 @@
 
 ![JCBCompressor Interface](Assets/screenshot.png)
 
-Plugin compresor de audio desarrollado con gen~ Plugin Export (Cycling '74) y el framework C++ JUCE. Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~, y usados como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/).
+Plugin compresor de audio desarrollado con [Gen~ Plugin Export (Cycling '74)](https://cycling74.com) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/). La exportación y creación de los plugins básicos con JUCE se hizo hace unos años y se ha mejorado, sobre todo la parte visual y de funcionalidad, extensivamente mediante el uso de Claude Code (ver NOTAS.md al respecto).
 
 ## Instalación
 
@@ -27,8 +27,8 @@ Plugin compresor de audio desarrollado con gen~ Plugin Export (Cycling '74) y el
 ## Compilación desde Código Fuente
 
 ### Requisitos Previos
-- Git, CMake 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
-- JUCE 8.0.8 (se descarga automáticamente via FetchContent)
+- Git, [CMake](https://cmake.org) 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
+- [JUCE](https://github.com/juce-framework/JUCE) 8.0.8 (se descarga automáticamente via FetchContent)
 - **AAX SDK** (requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid)
 
 ### Instrucciones de Compilación
@@ -60,20 +60,39 @@ cmake --build cmake-build-release
 
 ```
 JCBCompressor/
-├── Assets/                 # Imágenes, presets, código Gen~
-│   ├── FactoryPresets/    # Presets incluidos
-│   └── code/              # Código fuente Gen~
-├── Source/                # Código fuente C++
-│   ├── Components/        # Componentes UI
-│   │   ├── Core/         # Componentes base
-│   │   ├── Controls/     # Knobs, botones, etc.
-│   │   ├── Display/      # Componentes de visualización
-│   │   └── Windows/      # Ventanas emergentes
-│   ├── Helpers/          # Clases de utilidad
-│   └── Plugin*.cpp/h     # Archivos principales del plugin
-├── Max/                   # Patches de Max/MSP
-├── exported-code/         # Código exportado de Gen~ (auto-generado)
-└── cmake-build-*/         # Directorios de compilación (gestionados por CLion)
+├── Assets/                          # Recursos gráficos y presets
+│   ├── code/                       # Código fuente Gen~
+│   ├── FactoryPresets/             # Presets incluidos
+│   └── *.png                       # Imágenes de la interfaz
+├── Source/                         # Código fuente C++
+│   ├── PluginProcessor.cpp/.h      # Procesador principal del plugin
+│   ├── PluginEditor.cpp/.h         # Editor principal del plugin
+│   ├── Components/                 # Componentes de interfaz
+│   │   ├── UI/                    # Componentes de UI personalizados
+│   │   │   ├── CustomComboBox.*
+│   │   │   ├── CustomSlider.*
+│   │   │   ├── CustomTooltip.*
+│   │   │   ├── GradientMeter.*
+│   │   │   ├── TransferFunctionDisplay.*
+│   │   │   └── TriSlider.*
+│   │   └── Windows/               # Ventanas auxiliares
+│   │       ├── CodeWindow.*
+│   │       ├── CreditsWindow.*
+│   │       ├── CustomDialog.*
+│   │       ├── DarkThemeColors.*
+│   │       └── UndoableParameterAttachment.*
+│   └── Helpers/                   # Clases de utilidad
+│       ├── ParameterChangeAction.*
+│       ├── UndoableParameter.*
+│       └── UTF8Helper.*
+├── exported-code/                 # Código Gen~ exportado (auto-generado)
+│   └── gen_dsp/                  # Archivos DSP de Gen~
+├── Max/                          # Patch original de Max/MSP
+│   └── JCBCompressor.maxpat
+├── cmake/                        # Configuración CMake
+├── CMakeLists.txt               # Archivo principal de configuración
+├── LICENSE                      # Licencia GPL v3
+└── README.md                    # Este archivo
 ```
 
 ## Características
@@ -109,13 +128,36 @@ JCBCompressor/
   - Interpolación continua entre detección de pico y RMS
   - Control de smoothing adicional para personalizar la respuesta
 - **Compresión con softknee**: cálculo de reducción con softknee lineal primer orden
-- **Sidechain eterno**: Usa una señal externa para la detección de compresión
+- **Sidechain externo**: Usa una señal externa para la detección de compresión
 - **Filtros**: Butterworth de 2º y 4º orden para compresión dependiente de frecuencia
 - **Auto gain**: hasta el 70% recuperación de ganancia, funciona en conjunto con el makeup gain
-- **Compresión paralela**: sumatorio señale seca con señal comprimida
-- **Softcliping**: softclipig después de auto gain, makeup gain y compresión pararlela
+- **Compresión paralela**: sumatorio señal seca con señal comprimida
+- **Softclipping**: softclipping después de auto gain, makeup gain y compresión paralela
 - **Bypass interno**: Independiente del bypass del DAW
 - **Monitorización**: Escucha solo la diferencia entre entrada y salida y solo filtros
+
+## Licencia
+
+JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
+
+Consulta [LICENSE](LICENSE) para más detalles.
+
+## Recursos
+
+### Bibliografía Técnica
+- [Graham Wakefield & Gregory Taylor - *Generating Sound and Organizing Time*](https://cycling74.com/books/go)
+- [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
+- [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
+- [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
+
+### Contribuciones de Código Base
+- **Código base para vincular Gen~ Plugin Export con JUCE APVTS** - [Kengo Suzuki](https://github.com/szkkng/jr-granular)
+- **Código base para medidores** - [A. Murthy](https://www.youtube.com/watch?v=ILMdPjFQ9ps)
+- **Tooltips** - [F. Becker](https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp)
+- **Skin base/Presets** - J. Peña
+
+### Herramientas de Desarrollo
+- Desarrollado con asistencia de [Claude](https://claude.ai/)
 
 ## Por Hacer
 
@@ -127,14 +169,8 @@ JCBCompressor/
 
 ## Enlaces
 
-- **Repositorio GitHub**: [https://github.com/cjitter/JCBCompressor](https://github.com/cjitter/JCBCompressor)
+- **Repositorio GitHub**: [JCBCompressor](https://github.com/cjitter/JCBCompressor)
 - **Documentación**: Ver [NOTAS.md](NOTAS.md) para información adicional
-
-## Licencia
-
-JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
-
-Consulta [LICENSE](LICENSE) para más detalles.
 
 ---
 
