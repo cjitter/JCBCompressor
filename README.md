@@ -8,7 +8,8 @@ Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.c
 3. El instalador colocará automáticamente los plugins en las ubicaciones correctas:
    - VST3: `/Library/Audio/Plug-Ins/VST3/`
    - AU: `/Library/Audio/Plug-Ins/Components/`
-   - AAX: `/Library/Application Support/Avid/Audio/Plug-Ins/`
+4. **AAX (opcional)**: Si dispones del SDK de AAX y tienes Pro Tools Developer instalado, el plugin AAX se instalará en:
+   - AAX: `/Applications/Pro Tools Developer/Plug-Ins/`
 
 *Nota: El DMG está firmado y notarizado para macOS.*
 
@@ -38,14 +39,20 @@ cd JCBCompressor
 
 3. **Compilación**:
 ```bash
-# Compilación Debug
+# Compilación Debug (VST3 y AU)
 cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
 cmake --build build-debug
 
-# Compilación Release
+# Compilación Release (VST3 y AU)
 cmake -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
+
+# Para incluir AAX (requiere AAX SDK y Pro Tools Developer instalado)
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
+cmake --build build-release
 ```
+
+**Nota sobre AAX**: Si compilas con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
 
 ## Características principales
 

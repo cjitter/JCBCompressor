@@ -1,258 +1,125 @@
+![JCBCompressor Interface](Assets/screenshot.png)
 
-# ==============================================================================
-#
-#  Copyright 2025 Juan Carlos Blancas
-#
-#  JCBCompressor is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  JCBCompressor is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with JCBCompressor. If not, see <http://www.gnu.org/licenses/>.
-#
-# ==============================================================================
+Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo colaborativo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
 
-cmake_minimum_required(VERSION 3.20)
+## Instalación macOS
+1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBCompressor/releases)
+2. Abre el DMG y ejecuta el instalador
+3. El instalador colocará automáticamente los plugins en las ubicaciones correctas:
+   - VST3: `/Library/Audio/Plug-Ins/VST3/`
+   - AU: `/Library/Audio/Plug-Ins/Components/`
+4. **AAX (opcional)**: Si dispones del SDK de AAX y tienes Pro Tools Developer instalado, el plugin AAX se instalará en:
+   - AAX: `/Applications/Pro Tools Developer/Plug-Ins/`
 
-project(JCBCompressor VERSION 0.9.99)
+*Nota: El DMG está firmado y notarizado para macOS.*
 
-# Configuración C++
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_CXX_EXTENSIONS OFF)
+## Requisitos del sistema
 
-# Versión mínima de macOS
-set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Versión mínima de macOS")
+- macOS 10.13 o posterior
+- Procesador Intel o Apple Silicon
+- DAW compatible con VST3, AU o AAX
+- Probado en: Pro Tools, Reaper, Logic, Ableton Live y Bitwig
 
-# Binary Universal (Apple Silicon + Intel)
-set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Arquitecturas de compilación para macOS")
+## Compilación desde código fuente
 
-# Configurar ruta para módulos CMake personalizados
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+### Requisitos previos
+- Git, [CMake](https://cmake.org) 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
+- [JUCE](https://github.com/juce-framework/JUCE) 8.0.8 (se descarga automáticamente via FetchContent)
+- **AAX SDK**, solo requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid, etc.
 
-# Descargar JUCE directamente con FetchContent
-include(FetchContent)
+### Instrucciones de compilación
 
-FetchContent_Declare(
-        JUCE
-        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-        GIT_TAG 8.0.8
-)
+1. Clona el repositorio:
+```bash
+git clone https://github.com/cjitter/JCBCompressor.git
+cd JCBCompressor
+```
 
-# Opciones de JUCE para evitar compilar extras innecesarios
-set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
-set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+2. **Configuración del proyecto**: El archivo `CMakeLists.txt` es el generador principal del proyecto y define toda la estructura de compilación.
 
-FetchContent_MakeAvailable(JUCE)
+3. **Compilación**:
+```bash
+# Compilación Debug (VST3 y AU)
+cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-debug
 
-# Opciones de configuración
-option(JUCE_AUTO_INSTALL_PLUGINS "Auto-install plugins after build" ON)
+# Compilación Release (VST3 y AU)
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release
 
-# SDK externo opcional (AAX) para macOS
-set(JUCE_AAX_SDK_PATH "$ENV{HOME}/SDK/aax-sdk-2-8-1" CACHE PATH "Ruta al SDK de AAX")
+# Para incluir AAX (requiere AAX SDK y Pro Tools Developer instalado)
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
+cmake --build build-release
+```
 
-# Plugin JUCE
-juce_add_plugin(JCBCompressor
-        # Información básica del plugin
-        PLUGIN_NAME "JCBCompressor"
-        PRODUCT_NAME "JCBCompressor"
-        VERSION 0.9.99
-        DESCRIPTION "Stereo-linked feedforward compressor with external sidechain, parallel processing and lookahead"
-        
-        # Información de la empresa
-        COMPANY_NAME "Coeval"
-        COMPANY_WEBSITE "https://github.com/cjitter"
-        BUNDLE_ID "com.coeval.JCBCompressor"
-        PLUGIN_MANUFACTURER_CODE CoeV
-        PLUGIN_CODE CoE1
-        
-        # Formatos soportados
-        FORMATS VST3 AU AAX
-        
-        # Configuración del plugin
-        IS_SYNTH FALSE
-        NEEDS_MIDI_INPUT FALSE
-        NEEDS_MIDI_OUTPUT FALSE
-        IS_MIDI_EFFECT FALSE
-        EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-        COPY_PLUGIN_AFTER_BUILD FALSE
-        
-        # Categorías por formato
-        VST3_CATEGORIES Dynamics
-        AU_MAIN_TYPE kAudioUnitType_Effect
-        AU_SUBTYPE kAudioUnitSubType_DynamicsProcessor
-        AAX_CATEGORY AAX_ePlugInCategory_Dynamics
-)
+**Nota sobre AAX**: Si compilas con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
 
-# Archivos fuente del plugin
-target_sources(JCBCompressor PRIVATE
-        # Core plugin files
-        Source/PluginProcessor.cpp
-        Source/PluginEditor.cpp
+## Características principales
 
-        # UI Components
-        Source/Components/UI/TransferFunctionDisplay.cpp
-        Source/Components/UI/CustomComboBox.cpp
-        Source/Components/Windows/CreditsWindow.cpp
-        Source/Components/Windows/CodeWindow.cpp
-        
-        # Gen~ DSP engine
-        exported-code/JCBCompressor.cpp
-        exported-code/gen_dsp/genlib.cpp
-        exported-code/gen_dsp/json.c
-        exported-code/gen_dsp/json_builder.c
-)
+- **Ajuste de entrada** (trim ±12 dB) para ambas cadenas.
+- **Procesamiento sidechain** interno y externo con filtros paso alto y bajo, 2º/4º orden.
+- **Tres modos de detección**: sharp (sliding RMS), expo RMS y slow RMS, con interpolación continua y control adicional de suavizado.
+- **Ajuste independiente de reacción pico/RMS**.
+- **Compresión con softknee** lineal de primer orden.
+- **Controles estándar**: threshold (-60 a 0 dB), ratio (1:1 a 20:1), attack (0.1 a 250 ms), release (0.1 a 1000 ms), knee (0 a 30 dB).
+- **Ganancia de compensación** (makeup gain ±12 dB) y **auto gain** (hasta 70% de recuperación).
+- **Compresión paralela** mediante suma 100% señal seca/comprimida.
+- **Softclipping asimétrico**, aplicado tras compresión y makeup gain.
+- **Control Dry/Wet** (-6 dB a 50%) para mezcla de señal post-procesado (post softclip).
+- **Procesamiento estéreo** con opción estéreo link.
+- **Monitorización avanzada**: escucha delta (entrada/salida) y solo sidechain.
+- **Visualización gráfica**: forma de onda, medidores y reducción de ganancia.
+- **Gestión de presets** (usuario y fábrica).
+- **Bypass interno**, independiente del DAW.
+- **Formatos disponibles**: VST3, AU y AAX.
+- **Visualización del diagrama de bloques**: Acceso al diagrama completo del compresor con posibilidad de explorar cada bloque y copiar el código GenExpr para usar directamente en objetos Codebox o gen.codebox~ (Max 9).
 
-# Añadir recursos binarios
-juce_add_binary_data(JCBCompressor_BinaryData
-        SOURCES
-        Assets/fondo.png
-        Assets/bypass.png
-        Assets/delta.png
-        Assets/diagramaFondo.png
-        Assets/diagram.png
-        Assets/hpfOff.png
-        Assets/lpfOff.png
-        # Code files
-        Assets/code/InputTrim.txt
-        Assets/code/GainCore.txt
-        Assets/code/Filters.txt
-        Assets/code/Detector.txt
-        Assets/code/GainCalc.txt
-        Assets/code/Output.txt
-        # Presets de fábrica
-        Assets/FactoryPresets/Gentle_Compression.preset
-        Assets/FactoryPresets/Vocal_Warmth.preset
-        Assets/FactoryPresets/Drum_Bus_Glue.preset
-        Assets/FactoryPresets/Master_Bus.preset
-)
+![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
-# Linkear binary data al plugin
-target_link_libraries(JCBCompressor PRIVATE
-        JCBCompressor_BinaryData
-)
+## Recursos
 
+### Bibliografía técnica
+- [Graham Wakefield & Gregory Taylor - *Generating Sound and Organizing Time*](https://cycling74.com/books/go)
+- [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
+- [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
+- [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
 
-# Includes
-target_include_directories(JCBCompressor PRIVATE
-        Source/
-        exported-code/
-        exported-code/gen_dsp/
-)
+## Testing con pluginval
 
-# Módulos JUCE - Solo los necesarios (DSP manejado por Gen~)
-target_link_libraries(JCBCompressor PRIVATE
-        juce::juce_audio_basics
-        juce::juce_audio_plugin_client
-        juce::juce_audio_processors
-        juce::juce_core
-        juce::juce_data_structures
-        juce::juce_events
-        juce::juce_graphics
-        juce::juce_gui_basics
-        juce::juce_gui_extra
-)
+Este proyecto incluye tests automáticos con [pluginval](https://github.com/Tracktion/pluginval) para validar el plugin.
 
-# Definiciones del compilador - Esenciales + optimizaciones
-target_compile_definitions(JCBCompressor PUBLIC
-        # Configuraciones básicas estándar
-        JUCE_WEB_BROWSER=0
-        JUCE_USE_CURL=0
-        JUCE_VST3_CAN_REPLACE_VST2=0
-        
-        # Configuraciones adicionales
-        JUCE_REPORT_APP_USAGE=0
-        
-        # Optimización de rendimiento
-        JUCE_STRICT_REFCOUNTEDPTR=1
-)
+### Configuración
 
-# Flags del compilador para macOS (Clang)
-target_compile_options(JCBCompressor PRIVATE
-    -Wall -Wextra -Wno-unused-parameter
-)
+- **Detección automática**: Si tienes pluginval instalado, CMake lo detectará automáticamente
+- **Descarga automática**: Si no está instalado, se descargará automáticamente en la carpeta `tools/`
+- Para desactivar la descarga automática:
+  ```bash
+  cmake -B build -DPLUGINVAL_AUTO_DOWNLOAD=OFF
+  ```
 
+### Ejecutar los tests
 
-# Testing con pluginval
-enable_testing()
-include(Pluginval)
+```bash
+# Entra al directorio de build (el mismo nombre que usaste después de -B al configurar)
+# Por ejemplo: si usaste "cmake -B build", entonces:
+cd build
 
-# Agregar tests de pluginval para formatos compatibles (VST3, AU)
-add_pluginval_build_fixture(JCBCompressor_VST3)
-add_pluginval_tests(JCBCompressor_VST3)
+# Ejecutar todos los tests de pluginval con salida detallada
+# Usa -C Release o -C Debug según cómo compilaste el plugin
+# Nota: Los tests completos pueden tardar varios minutos
+ctest -C Release -R pluginval -V
+```
 
-if(TARGET JCBCompressor_AU)
-    add_pluginval_build_fixture(JCBCompressor_AU)
-    add_pluginval_tests(JCBCompressor_AU)
-endif()
+Los tests validan los formatos VST3 y AU del plugin.
 
-# Instalación automática para macOS (se puede desactivar más arriba en JUCE_AUTO_INSTALL_PLUGINS OFF)
-if(JUCE_AUTO_INSTALL_PLUGINS)
-    # Rutas de instalación del sistema macOS
-    set(VST3_DIR "/Library/Audio/Plug-Ins/VST3")
-    set(AU_DIR "/Library/Audio/Plug-Ins/Components")
-    set(AAX_DIR "/Applications/Pro Tools Developer/Plug-Ins")
-    # Instalación VST3
-    if(TARGET JCBCompressor_VST3)
-        add_custom_command(TARGET JCBCompressor_VST3 POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "Installing VST3 to system directory (may require admin privileges)..."
-            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${VST3_DIR}/JCBCompressor.vst3"
-            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/VST3/JCBCompressor.vst3"
-                "${VST3_DIR}/JCBCompressor.vst3"
-            COMMENT "Installing VST3 plugin to ${VST3_DIR}..."
-            VERBATIM
-        )
-    endif()
+## Por hacer
 
-    # Instalación AU
-    if(TARGET JCBCompressor_AU)
-        add_custom_command(TARGET JCBCompressor_AU POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "Installing AU to system directory (may require admin privileges)..."
-            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${AU_DIR}/JCBCompressor.component"
-            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AU/JCBCompressor.component"
-                "${AU_DIR}/JCBCompressor.component"
-            COMMENT "Installing AU plugin to ${AU_DIR}..."
-            VERBATIM
-        )
-    endif()
+- Migrar de Plugin Export a la exportación C++ de RNBO.
+- Implementar oversampling con el módulo dsp de JUCE.
+- Implementar modos dual y M/S.
+- Implementar mapeo MIDI.
+- Mejorar sistema de visualización entrada/salida e histograma de reducción de ganancia.
 
-    # Instalación AAX
-    if(TARGET JCBCompressor_AAX)
-        add_custom_command(TARGET JCBCompressor_AAX POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "Installing AAX to system directory (may require admin privileges)..."
-            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${AAX_DIR}/JCBCompressor.aaxplugin"
-            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AAX/JCBCompressor.aaxplugin"
-                "${AAX_DIR}/JCBCompressor.aaxplugin"
-            COMMENT "Installing AAX plugin to ${AAX_DIR}..."
-            VERBATIM
-        )
-    endif()
-endif()
+---
 
-# Información de configuración
-message(STATUS "JCBCompressor ${PROJECT_VERSION} - Platform: ${CMAKE_SYSTEM_NAME}")
-message(STATUS "Build directory: ${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/")
-
-# Estado del SDK AAX
-if(EXISTS "${JUCE_AAX_SDK_PATH}")
-    message(STATUS "AAX SDK: Found")
-else()
-    message(STATUS "AAX SDK: Not found (AAX will not be built)")
-endif()
-
-# Estado de auto-instalación
-if(JUCE_AUTO_INSTALL_PLUGINS)
-    message(STATUS "Auto-install: Enabled")
-else()
-    message(STATUS "Auto-install: Disabled")
-endif()
-
+*JCBCompressor v0.9.99 beta*
