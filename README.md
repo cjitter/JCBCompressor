@@ -46,14 +46,14 @@ cmake -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
 ```
 
+**Nota sobre AAX**: Si configuras con la opción AAX habilitada, cuando compiles el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
+
 3. **Compilación**:
 ```bash
 # Compilar el proyecto configurado
 cmake --build build-debug    # Para Debug
 cmake --build build-release   # Para Release
 ```
-
-**Nota sobre AAX**: Si configuras con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
 
 ## Características principales
 
