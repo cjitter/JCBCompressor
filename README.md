@@ -53,7 +53,7 @@ cmake --build build-debug    # Para Debug
 cmake --build build-release   # Para Release
 ```
 
-**Nota sobre AAX**: Si compilas con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
+**Nota sobre AAX**: Si configuras con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
 
 ## Características principales
 
