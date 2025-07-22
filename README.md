@@ -1,8 +1,8 @@
-# JCBCompressor
+ # JCBCompressor
 
 ![JCBCompressor Interface](Assets/screenshot.png)
 
-Plugin compresor de audio desarrollado con [Gen~ Plugin Export (Cycling '74)](https://cycling74.com) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con Gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica de los másteres [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/) y [MCAV](https://katarinagurska.com/curso-of/master-composicion-medios-audiovisuales-mcav/). La exportación y creación de los plugins básicos con JUCE se hizo hace unos años y se ha mejorado, sobre todo la parte visual y de funcionalidad, extensivamente mediante el uso de Claude Code (ver NOTAS.md al respecto).
+Plugin compresor de audio desarrollado con [gen~ Plugin Export (Cycling '74)](https://cycling74.com) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica en el [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Este proyecto en su estadio básico se hizo con JUCE 6 hace unos años pero ha sido mejorado en la parte gráfica y de funcioanlidad mediante el uso de vibe coding con Claude Code en junio de 2025, ver NOTAS.md.
 
 ## Instalación
 
@@ -29,7 +29,7 @@ Plugin compresor de audio desarrollado con [Gen~ Plugin Export (Cycling '74)](ht
 ### Requisitos Previos
 - Git, [CMake](https://cmake.org) 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
 - [JUCE](https://github.com/juce-framework/JUCE) 8.0.8 (se descarga automáticamente via FetchContent)
-- **AAX SDK** (requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid)
+- **AAX SDK** (solo requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid, etc.)
 
 ### Instrucciones de Compilación
 
@@ -60,15 +60,12 @@ cmake --build cmake-build-release
 
 ```
 JCBCompressor/
-├── Assets/                          # Recursos gráficos y presets
-│   ├── code/                       # Código fuente Gen~
-│   ├── FactoryPresets/             # Presets incluidos
-│   └── *.png                       # Imágenes de la interfaz
+├── Assets/                         # Recursos gráficos, código GenExpr y presets
 ├── Source/                         # Código fuente C++
 │   ├── PluginProcessor.cpp/.h      # Procesador principal del plugin
 │   ├── PluginEditor.cpp/.h         # Editor principal del plugin
 │   ├── Components/                 # Componentes de interfaz
-│   │   ├── UI/                    # Componentes de UI personalizados
+│   │   ├── UI/                     # Componentes de UI personalizados
 │   │   │   ├── CustomComboBox.*
 │   │   │   ├── CustomSlider.*
 │   │   │   ├── CustomTooltip.*
@@ -85,14 +82,14 @@ JCBCompressor/
 │       ├── ParameterChangeAction.*
 │       ├── UndoableParameter.*
 │       └── UTF8Helper.*
-├── exported-code/                 # Código Gen~ exportado (auto-generado)
+├── exported-code/                # Código Gen~ exportado (auto-generado)
 │   └── gen_dsp/                  # Archivos DSP de Gen~
 ├── Max/                          # Patch original de Max/MSP
 │   └── JCBCompressor.maxpat
-├── cmake/                        # Configuración CMake
+├── cmake/                       # Configuración CMake para pluginval
 ├── CMakeLists.txt               # Archivo principal de configuración
 ├── LICENSE                      # Licencia GPL v3
-└── README.md                    # Este archivo
+└── README.md                    # Readme
 ```
 
 ## Características
@@ -104,10 +101,10 @@ JCBCompressor/
 - **Control de suavizado adicional** (smoothing) para ajuste fino de la respuesta
 - **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y sidechain
 - **Controles estándar**: Threshold, Ratio, Knee, Attack, Release, Auto-Release y más
-- **Soft clipping** integrado
-- **Procesamiento sidechain** con filtros dedicados
+- **Softclipping** integrado
+- **Procesamiento sidechain interno y externo** con filtros dedicados
 - **Visualización** con display de forma de onda y medidores
-- **Menú de presets**
+- **Menú de presets**, usuario y fábrica
 - **Bypass interno** independiente del DAW
 - **Monitorización delta** (diferencia entrada/salida), solo de filtros sidechain
 - **Formatos soportados**: VST3, AU y AAX
@@ -115,32 +112,30 @@ JCBCompressor/
 ## Uso
 
 ### Operación Básica
-1. **Threshold**: Establece el nivel al que comienza la compresión (-60 a 0 dB)
-2. **Ratio**: Ajusta la cantidad de compresión (1:1 a 20:1)
-3. **Attack**: Controla qué tan rápido actúa la compresión (0.1 a 250 ms)
-4. **Release**: Define qué tan rápido se libera la compresión (0.1 a 1000 ms)
-5. **Knee**: Ajusta la transición hacia la compresión (0 a 30 dB)
-6. **Makeup gain**: Ganancia de compensación para recuperar el nivel reducido (-12 +12 dB)
-
-### Características Adicionales
+- **Trim input**: Ganancia de ajuste de entrada (-12 +12 dB)
+- **Threshold**: Establece el nivel a partir de done comienza la compresión (-60 a 0 dB)
+- **Ratio**: Ajusta la cantidad de compresión (1:1 a 20:1)
+- **Attack**: Controla qué tan rápido actúa la compresión (0.1 a 250 ms)
+- **Release**: Define qué tan rápido se libera la compresión (0.1 a 1000 ms)
+- **Knee**: Ajusta la transición hacia la compresión (0 a 30 dB)
+- **Makeup gain**: Ganancia de compensación (funciona junto a auto gain) para recuperar el nivel reducido (-12 +12 dB)
 - **Modos de detección**:
-  - Sharp (sliding RMS), Expo RMS (clásico) y Slow RMS
-  - Interpolación continua entre detección de pico y RMS
-  - Control de smoothing adicional para personalizar la respuesta
+  - Sharp (sliding RMS), Expo RMS (normal) y Slow RMS
+  - Interpolación continua entre detección rápida y promediada
+  - Control de suavizado adicional para personalizar la respuesta
 - **Compresión con softknee**: cálculo de reducción con softknee lineal primer orden
-- **Sidechain externo**: Usa una señal externa para la detección de compresión
-- **Filtros**: Butterworth de 2º y 4º orden para compresión dependiente de frecuencia
-- **Auto gain**: hasta el 70% recuperación de ganancia, funciona en conjunto con el makeup gain
-- **Compresión paralela**: sumatorio señal seca con señal comprimida
+- **Sidechain externo**: activa el uso de señal externa para la detección de compresión
+- **Filtros**: Butterworth de 2º/4º orden para compresión dependiente de frecuencia
+- **Auto gain**: hasta el 70% recuperación de ganancia, funciona junto a makeup gain
+- **Compresión paralela**: sumatorio señal seca entrada con señal comprimida
 - **Softclipping**: softclipping después de auto gain, makeup gain y compresión paralela
+- **Dry/Wet**: mezcla lineal de amplitud entre señal de entrada y salida post softclip (-6 dB a 50%)
 - **Bypass interno**: Independiente del bypass del DAW
 - **Monitorización**: Escucha solo la diferencia entre entrada y salida y solo filtros
 
 ## Licencia
 
-JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior.
-
-Consulta [LICENSE](LICENSE) para más detalles.
+JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU publicada por la Free Software Foundation, ya sea la versión 3 de la Licencia, o (a tu elección) cualquier versión posterior. Consulta [LICENSE](LICENSE) para más detalles.
 
 ## Recursos
 
@@ -149,15 +144,6 @@ Consulta [LICENSE](LICENSE) para más detalles.
 - [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
 - [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
 - [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
-
-### Contribuciones de Código Base
-- **Código base para vincular Gen~ Plugin Export con JUCE APVTS** - [Kengo Suzuki](https://github.com/szkkng/jr-granular)
-- **Código base para medidores** - [A. Murthy](https://www.youtube.com/watch?v=ILMdPjFQ9ps)
-- **Tooltips** - [F. Becker](https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp)
-- **Skin base/Presets** - J. Peña
-
-### Herramientas de Desarrollo
-- Desarrollado con asistencia de [Claude](https://claude.ai/)
 
 ## Por Hacer
 
