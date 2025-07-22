@@ -167,7 +167,6 @@ target_compile_definitions(JCBCompressor PUBLIC
         JUCE_VST3_CAN_REPLACE_VST2=0
         
         # Configuraciones adicionales
-        JUCE_DISPLAY_SPLASH_SCREEN=0
         JUCE_REPORT_APP_USAGE=0
         
         # Optimización de rendimiento
@@ -193,43 +192,48 @@ if(TARGET JCBCompressor_AU)
     add_pluginval_tests(JCBCompressor_AU)
 endif()
 
-# Instalación automática para macOS (opcional)
+# Instalación automática para macOS (se puede desactivar más arriba en JUCE_AUTO_INSTALL_PLUGINS OFF)
 if(JUCE_AUTO_INSTALL_PLUGINS)
-    # Rutas de instalación de macOS
-    set(VST3_DIR "$ENV{HOME}/Library/Audio/Plug-Ins/VST3")
-    set(AU_DIR "$ENV{HOME}/Library/Audio/Plug-Ins/Components")
+    # Rutas de instalación del sistema macOS
+    set(VST3_DIR "/Library/Audio/Plug-Ins/VST3")
+    set(AU_DIR "/Library/Audio/Plug-Ins/Components")
     set(AAX_DIR "/Applications/Pro Tools Developer/Plug-Ins")
-
     # Instalación VST3
     if(TARGET JCBCompressor_VST3)
         add_custom_command(TARGET JCBCompressor_VST3 POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${VST3_DIR}/JCBCompressor.vst3"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/VST3/JCBCompressor.vst3"
-            "${VST3_DIR}/JCBCompressor.vst3"
+            COMMAND ${CMAKE_COMMAND} -E echo "Installing VST3 to system directory (may require admin privileges)..."
+            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${VST3_DIR}/JCBCompressor.vst3"
+            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/VST3/JCBCompressor.vst3"
+                "${VST3_DIR}/JCBCompressor.vst3"
             COMMENT "Installing VST3 plugin to ${VST3_DIR}..."
+            VERBATIM
         )
     endif()
 
     # Instalación AU
     if(TARGET JCBCompressor_AU)
         add_custom_command(TARGET JCBCompressor_AU POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${AU_DIR}/JCBCompressor.component"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AU/JCBCompressor.component"
-            "${AU_DIR}/JCBCompressor.component"
+            COMMAND ${CMAKE_COMMAND} -E echo "Installing AU to system directory (may require admin privileges)..."
+            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${AU_DIR}/JCBCompressor.component"
+            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AU/JCBCompressor.component"
+                "${AU_DIR}/JCBCompressor.component"
             COMMENT "Installing AU plugin to ${AU_DIR}..."
+            VERBATIM
         )
     endif()
 
     # Instalación AAX
     if(TARGET JCBCompressor_AAX)
         add_custom_command(TARGET JCBCompressor_AAX POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${AAX_DIR}/JCBCompressor.aaxplugin"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AAX/JCBCompressor.aaxplugin"
-            "${AAX_DIR}/JCBCompressor.aaxplugin"
-            COMMENT "Installing AAX plugin to ${AAX_DIR} (may require permissions)..."
+            COMMAND ${CMAKE_COMMAND} -E echo "Installing AAX to system directory (may require admin privileges)..."
+            COMMAND sudo ${CMAKE_COMMAND} -E remove_directory "${AAX_DIR}/JCBCompressor.aaxplugin"
+            COMMAND sudo ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/JCBCompressor_artefacts/$<CONFIG>/AAX/JCBCompressor.aaxplugin"
+                "${AAX_DIR}/JCBCompressor.aaxplugin"
+            COMMENT "Installing AAX plugin to ${AAX_DIR}..."
+            VERBATIM
         )
     endif()
 endif()

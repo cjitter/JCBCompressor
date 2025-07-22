@@ -1,1 +1,10 @@
 **/.DS_Store
+tools/
+
+# Carpetas de build
+*build*/
+
+# Archivos temporales de testing
+pluginval_temp/
+pluginval_logs/
+Testing/

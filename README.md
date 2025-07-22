@@ -78,6 +78,29 @@ cmake --build build-release
 - [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
 - [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
 
+## Testing con pluginval
+
+Este proyecto incluye tests automáticos con [pluginval](https://github.com/Tracktion/pluginval) para validar el plugin.
+
+### Configuración
+- **Detección automática**: Si tienes pluginval instalado, CMake lo detectará automáticamente
+- **Descarga automática**: Si no está instalado, se descargará automáticamente en la carpeta `tools/`
+- Para desactivar la descarga automática: `cmake -B build -DPLUGINVAL_AUTO_DOWNLOAD=OFF`
+
+### Ejecutar los tests
+# Entra al directorio de build (el mismo nombre que usaste después de -B al configurar)
+# Por ejemplo: si usaste "cmake -B build", entonces:
+```bash
+cd build
+```
+
+# Ejecutar todos los tests de pluginval con salida detallada
+# Usa -C Release o -C Debug según cómo compilaste el plugin
+# Nota: Los tests completos pueden tardar varios minutos
+```bash
+ctest -C Release -R pluginval -V
+```
+
 ## Por hacer
 
 - Migrar de Plugin Export a la exportación C++ de RNBO.
