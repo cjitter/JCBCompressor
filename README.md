@@ -4,7 +4,7 @@
 Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica en el [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Este proyecto en su estadio básico se hizo con JUCE 6 hace unos años pero ha sido mejorado en la parte gráfica y de funcionalidad mediante el uso de vibe coding con Claude Code en junio de 2025, ver [NOTAS.md](NOTAS.md).
 
 ## Instalación macOS
-1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBComp/releases)
+1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBCompressor/releases)
 2. Abre el DMG y ejecuta el instalador
 3. El instalador colocará automáticamente los plugins en las ubicaciones correctas:
    - VST3: `/Library/Audio/Plug-Ins/VST3/`
@@ -66,6 +66,9 @@ cmake --build build-release
 - **Gestión de presets** (usuario y fábrica).
 - **Bypass interno**, independiente del DAW.
 - **Formatos disponibles**: VST3, AU y AAX.
+- **Visualización del diagrama de bloques**: Acceso al diagrama completo del compresor con posibilidad de explorar cada bloque y copiar el código GenExpr para usar directamente en objetos Codebox o gen.codebox~ (Max 9).
+
+![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
 ## Licencia
 
