@@ -46,6 +46,10 @@ cmake -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
 ```
 
+**Nota sobre generadores**: Por defecto, CMake usa Unix Makefiles en macOS. También puedes especificar otros generadores:
+- **Ninja** (más rápido): `cmake -B build -G Ninja`
+- **Xcode** (IDE nativo): `cmake -B build -G Xcode`
+
 **Nota sobre AAX**: Si configuras con la opción AAX habilitada, cuando compiles el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
 
 3. **Compilación**:
