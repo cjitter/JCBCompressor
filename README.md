@@ -1,6 +1,6 @@
 ![JCBCompressor Interface](Assets/screenshot.png)
 
-Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
+Plugin compresor de audio desarrollado en ge~, exportado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y finalizado con el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
 
 ## Instalación macOS
 1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBCompressor/releases)
@@ -120,10 +120,12 @@ Los tests validan los formatos VST3 y AU del plugin.
 ## Por hacer
 
 - Migrar de Plugin Export a la exportación C++ de RNBO.
-- Implementar oversampling con el módulo dsp de JUCE.
+- Implementar oversampling con el módulo DSP de JUCE.
 - Implementar modos dual y M/S.
 - Implementar mapeo MIDI.
 - Mejorar sistema de visualización entrada/salida e histograma de reducción de ganancia.
+- Portar a SuperCollider los bloques de GenExpr, y/o crear UGen.
+- Hacer el Max For Live device.
 
 ---
 
