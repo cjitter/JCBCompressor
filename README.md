@@ -1,4 +1,3 @@
-
 ![JCBCompressor Interface](Assets/screenshot.png)
 
 Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo colaborativo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
@@ -83,23 +82,28 @@ cmake --build build-release
 Este proyecto incluye tests automáticos con [pluginval](https://github.com/Tracktion/pluginval) para validar el plugin.
 
 ### Configuración
+
 - **Detección automática**: Si tienes pluginval instalado, CMake lo detectará automáticamente
 - **Descarga automática**: Si no está instalado, se descargará automáticamente en la carpeta `tools/`
-- Para desactivar la descarga automática: `cmake -B build -DPLUGINVAL_AUTO_DOWNLOAD=OFF`
+- Para desactivar la descarga automática: 
+  ```bash
+  cmake -B build -DPLUGINVAL_AUTO_DOWNLOAD=OFF
+  ```
 
 ### Ejecutar los tests
+
+```bash
 # Entra al directorio de build (el mismo nombre que usaste después de -B al configurar)
 # Por ejemplo: si usaste "cmake -B build", entonces:
-```bash
 cd build
-```
 
 # Ejecutar todos los tests de pluginval con salida detallada
 # Usa -C Release o -C Debug según cómo compilaste el plugin
 # Nota: Los tests completos pueden tardar varios minutos
-```bash
 ctest -C Release -R pluginval -V
 ```
+
+Los tests validan los formatos VST3 y AU del plugin.
 
 ## Por hacer
 
