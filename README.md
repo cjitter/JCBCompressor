@@ -1,12 +1,8 @@
- # JCBCompressor
-
 ![JCBCompressor Interface](Assets/screenshot.png)
 
 Plugin compresor de audio desarrollado con [gen~ Plugin Export (Cycling '74)](https://cycling74.com) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica en el [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Este proyecto en su estadio básico se hizo con JUCE 6 hace unos años pero ha sido mejorado en la parte gráfica y de funcioanlidad mediante el uso de vibe coding con Claude Code en junio de 2025, ver NOTAS.md.
 
-## Instalación
-
-### macOS
+## Instalación macOS
 1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBComp/releases)
 2. Abre el DMG y ejecuta el instalador
 3. El instalador colocará automáticamente los plugins en las ubicaciones correctas:
@@ -16,22 +12,21 @@ Plugin compresor de audio desarrollado con [gen~ Plugin Export (Cycling '74)](ht
 
 *Nota: El DMG está firmado y notarizado para macOS.*
 
-## Requisitos del Sistema
+## Requisitos del sistema
 
-### macOS
 - macOS 10.13 o posterior
 - Procesador Intel o Apple Silicon
 - DAW compatible con VST3, AU o AAX
 - Probado en: Pro Tools, Reaper, Logic, Ableton Live y Bitwig
 
-## Compilación desde Código Fuente
+## Compilación desde código fuente
 
-### Requisitos Previos
+### Requisitos previos
 - Git, [CMake](https://cmake.org) 3.20 o posterior, compilador Apple Clang compatible con C++20 (incluido en Xcode 13 o superior).
 - [JUCE](https://github.com/juce-framework/JUCE) 8.0.8 (se descarga automáticamente via FetchContent)
-- **AAX SDK** (solo requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid, etc.)
+- **AAX SDK**, solo requerido para compilar formato AAX - disponible desde cuenta de desarrollador Avid, etc.
 
-### Instrucciones de Compilación
+### Instrucciones de compilación
 
 1. Clona el repositorio:
 ```bash
@@ -44,19 +39,15 @@ cd JCBCompressor
 3. **Compilación**:
 ```bash
 # Compilación Debug
-cmake -B cmake-build-debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build cmake-build-debug
+cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-debug
 
 # Compilación Release
-cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build cmake-build-release
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release
 ```
 
-### Notas Importantes de Compilación
-- El directorio `exported-code/` contiene código Gen~ auto-generado - no modificar
-- Usa directorios de compilación separados para cualquier experimento con cmake
-
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```
 JCBCompressor/
@@ -94,19 +85,20 @@ JCBCompressor/
 
 ## Características
 
-- **Compresión con DSP Gen~** de Max/MSP
-- **Procesamiento estéreo en modo Link**
-- **Tres modos de detección**: Sliding RMS, Exponential RMS y Slow RMS
-- **Interpolación continua** entre detección de pico y RMS
-- **Control de suavizado adicional** (smoothing) para ajuste fino de la respuesta
-- **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y sidechain
-- **Controles estándar**: Threshold, Ratio, Knee, Attack, Release, Auto-Release y más
-- **Softclipping** integrado
-- **Procesamiento sidechain interno y externo** con filtros dedicados
+- **Ajuste de nivel de entrada** en las dos cadenas, trim +-12 dB
+- **Procesamiento sidechain interno y externo** con filtros dedicados paso alto y paso bajo
+- **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y/o externa
+- **Tres modos de detección**: sharp (sliding RMS), expo RMS y slow RMS
+- **Ajusto independiente de reacción** entre pico y RMS
+- **Control adicional de suavizado** para ajuste fino de la envolvente detectada
+- **Compresión con softknee lineal primer orden**
+- **Procesamiento estéreo en modo estéreo Link**
+- **Controles estándar**: threshold, ratio, knee, attack, release, auto-Release...
+- **Softclipping** asimétrico mediante control adicional
 - **Visualización** con display de forma de onda y medidores
 - **Menú de presets**, usuario y fábrica
 - **Bypass interno** independiente del DAW
-- **Monitorización delta** (diferencia entrada/salida), solo de filtros sidechain
+- **Monitorización delta** (diferencia entrada/salida) y solo de filtros sidechain
 - **Formatos soportados**: VST3, AU y AAX
 
 ## Uso
@@ -131,7 +123,7 @@ JCBCompressor/
 - **Softclipping**: softclipping después de auto gain, makeup gain y compresión paralela
 - **Dry/Wet**: mezcla lineal de amplitud entre señal de entrada y salida post softclip (-6 dB a 50%)
 - **Bypass interno**: Independiente del bypass del DAW
-- **Monitorización**: Escucha solo la diferencia entre entrada y salida y solo filtros
+- **Monitorización**: delta, escucha solo la diferencia entre entrada/salida, y escucha solo de filtros
 
 ## Licencia
 
@@ -139,24 +131,24 @@ JCBCompressor es software libre: puedes redistribuirlo y/o modificarlo bajo los 
 
 ## Recursos
 
-### Bibliografía Técnica
+### Bibliografía técnica
 - [Graham Wakefield & Gregory Taylor - *Generating Sound and Organizing Time*](https://cycling74.com/books/go)
 - [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
 - [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
 - [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
 
-## Por Hacer
+## Por hacer
 
 - Migrar de Plugin Export a la exportación C++ de RNBO
-- Implementar oversampling
-- Implementar modo dual y M/S
-- Implementar MIDI mapping
+- Implementar oversampling con el módulo dsp de JUCE.
+- Implementar modos dual y M/S
+- Implementar mapeo MIDI
 - Mejorar sistema de visualización entrada/salida e histograma de reducción de ganancia
 
 ## Enlaces
 
 - **Repositorio GitHub**: [JCBCompressor](https://github.com/cjitter/JCBCompressor)
-- **Documentación**: Ver [NOTAS.md](NOTAS.md) para información adicional
+- **Documentación**: Ver [NOTAS.md](NOTAS.md) para información técnica adicional
 
 ---
 
