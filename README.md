@@ -51,12 +51,12 @@ cmake --build build-release
 
 ```
 JCBCompressor/
-├── Assets/                         # Recursos gráficos, código GenExpr y presets
-├── Source/                         # Código fuente C++
-│   ├── PluginProcessor.cpp/.h      # Procesador principal del plugin
-│   ├── PluginEditor.cpp/.h         # Editor principal del plugin
-│   ├── Components/                 # Componentes de interfaz
-│   │   ├── UI/                     # Componentes de UI personalizados
+├── Assets/                        # Recursos gráficos, código GenExpr y presets
+├── Source/                        # Código fuente C++
+│   ├── PluginProcessor.cpp/.h     # Procesador principal del plugin
+│   ├── PluginEditor.cpp/.h        # Editor principal del plugin
+│   ├── Components/                # Componentes de interfaz
+│   │   ├── UI/                    # Componentes de UI personalizados
 │   │   │   ├── CustomComboBox.*
 │   │   │   ├── CustomSlider.*
 │   │   │   ├── CustomTooltip.*
@@ -73,14 +73,14 @@ JCBCompressor/
 │       ├── ParameterChangeAction.*
 │       ├── UndoableParameter.*
 │       └── UTF8Helper.*
-├── exported-code/                # Código Gen~ exportado (auto-generado)
-│   └── gen_dsp/                  # Archivos DSP de Gen~
-├── Max/                          # Patch original de Max/MSP
+├── exported-code/                 # Código Gen~ exportado (auto-generado)
+│   └── gen_dsp/                   # Archivos DSP de Gen~
+├── Max/                           # Patch original de Max/MSP
 │   └── JCBCompressor.maxpat
-├── cmake/                       # Configuración CMake para pluginval
-├── CMakeLists.txt               # Archivo principal de configuración
-├── LICENSE                      # Licencia GPL v3
-└── README.md                    # Readme
+├── cmake/                         # Configuración CMake para pluginval
+├── CMakeLists.txt                 # Archivo principal de configuración
+├── LICENSE                        # Licencia GPL v3
+└── README.md                      # Readme
 ```
 
 ## Características
