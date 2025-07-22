@@ -1,6 +1,7 @@
+
 ![JCBCompressor Interface](Assets/screenshot.png)
 
-Plugin compresor de audio desarrollado con [gen~ Plugin Export (Cycling '74)](https://cycling74.com) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica en el [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Este proyecto en su estadio básico se hizo con JUCE 6 hace unos años pero ha sido mejorado en la parte gráfica y de funcioanlidad mediante el uso de vibe coding con Claude Code en junio de 2025, ver NOTAS.md.
+Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin es parte de un paquete de plugins de audio básicos hechos con gen~ en Max, y que uso como material didáctico en mis clases de la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica en el [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Este proyecto en su estadio básico se hizo con JUCE 6 hace unos años pero ha sido mejorado en la parte gráfica y de funcionalidad mediante el uso de vibe coding con Claude Code en junio de 2025, ver [NOTAS.md](NOTAS.md).
 
 ## Instalación macOS
 1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBComp/releases)
@@ -47,83 +48,24 @@ cmake -B build-release -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
 ```
 
-## Estructura del proyecto
+## Características principales
 
-```
-JCBCompressor/
-├── Assets/                        # Recursos gráficos, código GenExpr y presets
-├── Source/                        # Código fuente C++
-│   ├── PluginProcessor.cpp/.h     # Procesador principal del plugin
-│   ├── PluginEditor.cpp/.h        # Editor principal del plugin
-│   ├── Components/                # Componentes de interfaz
-│   │   ├── UI/                    # Componentes de UI personalizados
-│   │   │   ├── CustomComboBox.*
-│   │   │   ├── CustomSlider.*
-│   │   │   ├── CustomTooltip.*
-│   │   │   ├── GradientMeter.*
-│   │   │   ├── TransferFunctionDisplay.*
-│   │   │   └── TriSlider.*
-│   │   └── Windows/               # Ventanas auxiliares
-│   │       ├── CodeWindow.*
-│   │       ├── CreditsWindow.*
-│   │       ├── CustomDialog.*
-│   │       ├── DarkThemeColors.*
-│   │       └── UndoableParameterAttachment.*
-│   └── Helpers/                   # Clases de utilidad
-│       ├── ParameterChangeAction.*
-│       ├── UndoableParameter.*
-│       └── UTF8Helper.*
-├── exported-code/                 # Código Gen~ exportado (auto-generado)
-│   └── gen_dsp/                   # Archivos DSP de Gen~
-├── Max/                           # Patch original de Max/MSP
-│   └── JCBCompressor.maxpat
-├── cmake/                         # Configuración CMake para pluginval
-├── CMakeLists.txt                 # Archivo principal de configuración
-├── LICENSE                        # Licencia GPL v3
-└── README.md                      # Readme
-```
-
-## Características
-
-- **Ajuste de nivel de entrada** en las dos cadenas, trim +-12 dB
-- **Procesamiento sidechain interno y externo** con filtros dedicados paso alto y paso bajo
-- **Filtros Butterworth de 2º y 4º orden** para las cadenas principal y/o externa
-- **Tres modos de detección**: sharp (sliding RMS), expo RMS y slow RMS
-- **Ajusto independiente de reacción** entre pico y RMS
-- **Control adicional de suavizado** para ajuste fino de la envolvente detectada
-- **Compresión con softknee lineal primer orden**
-- **Procesamiento estéreo en modo estéreo Link**
-- **Controles estándar**: threshold, ratio, knee, attack, release, auto-Release...
-- **Softclipping** asimétrico mediante control adicional
-- **Visualización** con display de forma de onda y medidores
-- **Menú de presets**, usuario y fábrica
-- **Bypass interno** independiente del DAW
-- **Monitorización delta** (diferencia entrada/salida) y solo de filtros sidechain
-- **Formatos soportados**: VST3, AU y AAX
-
-## Uso
-
-### Operación Básica
-- **Trim input**: Ganancia de ajuste de entrada (-12 +12 dB)
-- **Threshold**: Establece el nivel a partir de done comienza la compresión (-60 a 0 dB)
-- **Ratio**: Ajusta la cantidad de compresión (1:1 a 20:1)
-- **Attack**: Controla qué tan rápido actúa la compresión (0.1 a 250 ms)
-- **Release**: Define qué tan rápido se libera la compresión (0.1 a 1000 ms)
-- **Knee**: Ajusta la transición hacia la compresión (0 a 30 dB)
-- **Makeup gain**: Ganancia de compensación (funciona junto a auto gain) para recuperar el nivel reducido (-12 +12 dB)
-- **Modos de detección**:
-  - Sharp (sliding RMS), Expo RMS (normal) y Slow RMS
-  - Interpolación continua entre detección rápida y promediada
-  - Control de suavizado adicional para personalizar la respuesta
-- **Compresión con softknee**: cálculo de reducción con softknee lineal primer orden
-- **Sidechain externo**: activa el uso de señal externa para la detección de compresión
-- **Filtros**: Butterworth de 2º/4º orden para compresión dependiente de frecuencia
-- **Auto gain**: hasta el 70% recuperación de ganancia, funciona junto a makeup gain
-- **Compresión paralela**: sumatorio señal seca entrada con señal comprimida
-- **Softclipping**: softclipping después de auto gain, makeup gain y compresión paralela
-- **Dry/Wet**: mezcla lineal de amplitud entre señal de entrada y salida post softclip (-6 dB a 50%)
-- **Bypass interno**: Independiente del bypass del DAW
-- **Monitorización**: delta, escucha solo la diferencia entre entrada/salida, y escucha solo de filtros
+- **Ajuste de entrada** (trim ±12 dB) para ambas cadenas.
+- **Procesamiento sidechain** interno y externo, con filtros paso alto y bajo (Butterworth 2º/4º orden).
+- **Tres modos de detección**: sharp (sliding RMS), expo RMS y slow RMS, con interpolación continua y control adicional de suavizado.
+- **Ajuste independiente de reacción pico/RMS**.
+- **Compresión con softknee** lineal de primer orden.
+- **Controles estándar**: threshold (-60 a 0 dB), ratio (1:1 a 20:1), attack (0.1 a 250 ms), release (0.1 a 1000 ms), knee (0 a 30 dB).
+- **Ganancia de compensación** (makeup gain ±12 dB) y **auto gain** (hasta 70% de recuperación).
+- **Compresión paralela** mediante mezcla señal seca/comprimida.
+- **Softclipping asimétrico**, aplicado tras compresión y makeup gain.
+- **Control Dry/Wet** (-6 dB a 50%) para mezcla de señal post-procesado.
+- **Procesamiento estéreo** con opción estéreo link.
+- **Monitorización avanzada**: escucha delta (entrada/salida) y solo sidechain.
+- **Visualización gráfica**: forma de onda, medidores y reducción de ganancia.
+- **Gestión de presets** (usuario y fábrica).
+- **Bypass interno**, independiente del DAW.
+- **Formatos disponibles**: VST3, AU y AAX.
 
 ## Licencia
 
