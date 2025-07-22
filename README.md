@@ -129,4 +129,4 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ---
 
-*JCBCompressor v0.9.99 beta*
+*© 2025 Juan Carlos Blancas – JCBCompressor v0.9.99 beta*
