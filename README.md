@@ -5,11 +5,10 @@ Plugin compresor de audio desarrollado con [gen~ Plugin Export](https://github.c
 ## Instalación macOS
 1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBCompressor/releases)
 2. Abre el DMG y ejecuta el instalador
-3. El instalador colocará automáticamente los plugins en las ubicaciones correctas:
+3. El instalador colocará automáticamente los tipos de plugins seleccionados en las ubicaciones correctas del sistema:
    - VST3: `/Library/Audio/Plug-Ins/VST3/`
    - AU: `/Library/Audio/Plug-Ins/Components/`
-4. **AAX (opcional)**: Si dispones del SDK de AAX y tienes Pro Tools Developer instalado, el plugin AAX se instalará en:
-   - AAX: `/Applications/Pro Tools Developer/Plug-Ins/`
+   - AAX: `/Library/Application Support/Avid/Audio/Plug-Ins/`
 
 *Nota: El DMG está firmado y notarizado para macOS.*
 
@@ -92,7 +91,7 @@ Este proyecto incluye tests automáticos con [pluginval](https://github.com/Trac
 
 - **Detección automática**: Si tienes pluginval instalado, CMake lo detectará automáticamente
 - **Descarga automática**: Si no está instalado, se descargará automáticamente en la carpeta `tools/`
-- Para desactivar la descarga automática: 
+- Para desactivar la descarga automática:
   ```bash
   cmake -B build -DPLUGINVAL_AUTO_DOWNLOAD=OFF
   ```
