@@ -245,7 +245,7 @@ void TransferFunctionDisplay::drawAxes(juce::Graphics& g, juce::Rectangle<float>
     // Eje X (entrada) - parte inferior
     g.drawHorizontalLine(int(bounds.getBottom()), bounds.getX(), bounds.getRight());
     
-    // Eje Y (salida) - parte izquierda  
+    // Eje Y (salida) - parte izquierda
     g.drawVerticalLine(int(bounds.getX()), bounds.getY(), bounds.getBottom());
     
     // Labels de ejes (pequeños)
@@ -253,11 +253,11 @@ void TransferFunctionDisplay::drawAxes(juce::Graphics& g, juce::Rectangle<float>
     g.setFont(7.0f);
     
     // Label entrada (abajo centro)
-    g.drawText("Input (dB)", bounds.getCentreX() - 25, bounds.getBottom() + 2, 50, 8, 
+    g.drawText("Input (dB)", bounds.getCentreX() - 25, bounds.getBottom() + 2, 50, 8,
                juce::Justification::centred);
     
     // Label salida (izquierda centro, vertical)
-    g.drawText("Output", bounds.getX() - 12, bounds.getCentreY() - 15, 12, 30, 
+    g.drawText("Output", bounds.getX() - 12, bounds.getCentreY() - 15, 12, 30,
                juce::Justification::centred);
 }
 
@@ -694,9 +694,9 @@ void TransferFunctionDisplay::updateWaveformData(const float* inputSamples, cons
         float finalProcessedEnv = processedEnvelopeState.load(std::memory_order_relaxed);
         
         // Convertir a dB sin ruido artificial
-        float inputDb = finalInputEnv > 0.0001f ? 
+        float inputDb = finalInputEnv > 0.0001f ?
             20.0f * std::log10(finalInputEnv) : -80.0f;
-        float processedDb = finalProcessedEnv > 0.0001f ? 
+        float processedDb = finalProcessedEnv > 0.0001f ?
             20.0f * std::log10(finalProcessedEnv) : -80.0f;
         
         // Limitar al rango del gráfico (-80 dB a 0 dB)
@@ -774,7 +774,7 @@ void TransferFunctionDisplay::updateWaveformDataWithGR(const float* inputSamples
         useFastMode = changeDetector > 0.1f;
         
         // Parámetros independientes para diferentes tipos de visualización
-        float envelopeReleaseTime = 0.3f;   // Release rápido para envolventes (comportamiento original)
+        //float envelopeReleaseTime = 0.3f;   // Release rápido para envolventes (comportamiento original)
         
         // Factor de suavizado por defecto para gain reduction (valor medio)
         float grSmoothingFactor = 0.7f;  // Equivalente a ~100ms de release
@@ -826,9 +826,9 @@ void TransferFunctionDisplay::updateWaveformDataWithGR(const float* inputSamples
             float finalProcessedEnv = processedEnvelopeState.load(std::memory_order_relaxed);
             
             // Convertir a dB sin ruido artificial
-            float inputDb = finalInputEnv > 0.0001f ? 
+            float inputDb = finalInputEnv > 0.0001f ?
                 20.0f * std::log10(finalInputEnv) : -80.0f;
-            float processedDb = finalProcessedEnv > 0.0001f ? 
+            float processedDb = finalProcessedEnv > 0.0001f ?
                 20.0f * std::log10(finalProcessedEnv) : -80.0f;
             
             // Limitar al rango del gráfico (-80 dB a 0 dB)
@@ -842,9 +842,9 @@ void TransferFunctionDisplay::updateWaveformDataWithGR(const float* inputSamples
         
         // DIRECT CONVERSION - NO FILTERING (DEBUG)
         {
-            float inputDb = maxInput > 0.0001f ? 
+            float inputDb = maxInput > 0.0001f ?
                 20.0f * std::log10(maxInput) : -80.0f;
-            float processedDb = maxProcessed > 0.0001f ? 
+            float processedDb = maxProcessed > 0.0001f ?
                 20.0f * std::log10(maxProcessed) : -80.0f;
             
             inputWaveformBuffer[writeIndex] = inputDb;
@@ -894,13 +894,13 @@ void TransferFunctionDisplay::updateWaveformDataWithGR(const float* inputSamples
             if (gainReduction > currentGRSmoothed)
             {
                 // Attack con suavizado basado en el parámetro Attack
-                newGRSmoothed = currentGRSmoothed * grAttackFactor + 
+                newGRSmoothed = currentGRSmoothed * grAttackFactor +
                               gainReduction * (1.0f - grAttackFactor);
             }
             else
             {
                 // Release suavizado para evitar saltos
-                newGRSmoothed = currentGRSmoothed * grSmoothingFactor + 
+                newGRSmoothed = currentGRSmoothed * grSmoothingFactor +
                               gainReduction * (1.0f - grSmoothingFactor);
             }
             
@@ -1000,9 +1000,9 @@ void TransferFunctionDisplay::drawWaveformAreas(juce::Graphics& g, juce::Rectang
             float separation = (inputY - processedY) * visualAmplification;
             
             // Mantener los valores dentro de los límites
-            processedY = juce::jlimit(bounds.getY(), bounds.getBottom(), 
+            processedY = juce::jlimit(bounds.getY(), bounds.getBottom(),
                                      midPoint + separation * 0.5f);
-            inputY = juce::jlimit(bounds.getY(), bounds.getBottom(), 
+            inputY = juce::jlimit(bounds.getY(), bounds.getBottom(),
                                  midPoint - separation * 0.5f);
         }
         
@@ -1365,7 +1365,7 @@ void TransferFunctionDisplay::drawGainReductionHistory(juce::Graphics& g, juce::
                         float t2 = t * t;
                         float t3 = t2 * t;
                         
-                        float x = 0.5f * ((2.0f * p1.x) + 
+                        float x = 0.5f * ((2.0f * p1.x) +
                                          (-p0.x + p2.x) * t +
                                          (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
                                          (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
@@ -1429,7 +1429,7 @@ void TransferFunctionDisplay::drawGainReductionHistory(juce::Graphics& g, juce::
                         float t2 = t * t;
                         float t3 = t2 * t;
                         
-                        float x = 0.5f * ((2.0f * p1.x) + 
+                        float x = 0.5f * ((2.0f * p1.x) +
                                          (-p0.x + p2.x) * t +
                                          (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 +
                                          (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) * t3);
