@@ -34,21 +34,23 @@ git clone https://github.com/cjitter/JCBCompressor.git
 cd JCBCompressor
 ```
 
-2. **Configuración del proyecto**: El archivo `CMakeLists.txt` es el generador principal del proyecto y define toda la estructura de compilación.
+2. **Configuración del proyecto**:
+```bash
+# Configurar proyecto Debug (VST3 y AU)
+cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+
+# Configurar proyecto Release (VST3 y AU)
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+
+# Configurar proyecto Release con AAX (requiere AAX SDK y Pro Tools Developer instalado)
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
+```
 
 3. **Compilación**:
 ```bash
-# Compilación Debug (VST3 y AU)
-cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build-debug
-
-# Compilación Release (VST3 y AU)
-cmake -B build-release -DCMAKE_BUILD_TYPE=Release
-cmake --build build-release
-
-# Para incluir AAX (requiere AAX SDK y Pro Tools Developer instalado)
-cmake -B build-release -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_AAX=ON
-cmake --build build-release
+# Compilar el proyecto configurado
+cmake --build build-debug    # Para Debug
+cmake --build build-release   # Para Release
 ```
 
 **Nota sobre AAX**: Si compilas con la opción AAX habilitada, el plugin se instalará automáticamente en `/Applications/Pro Tools Developer/Plug-Ins/` para testing con Pro Tools Developer.
