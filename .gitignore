@@ -2,7 +2,10 @@
 tools/
 
 # Carpetas de build
-*build*/
+build/
+cmake-build-*/
+build-xcode/
+
 
 # Archivos temporales de testing
 pluginval_temp/
@@ -12,3 +15,7 @@ Testing/
 # Archivos CLion
 .idea/
 CLAUDE.md
+
+# Scripts manuales de compilación final plugins mediante xcode toolchain
+build-xcode-aax-release.sh
+build-xcode-vst3-au-release.sh
