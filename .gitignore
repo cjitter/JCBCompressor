@@ -8,3 +8,7 @@ tools/
 pluginval_temp/
 pluginval_logs/
 Testing/
+
+# Archivos CLion
+.idea/
+CLAUDE.md
