@@ -14,7 +14,7 @@ Plugin compresor de audio desarrollado en gen~, exportado con [gen~ Plugin Expor
 
 ## Requisitos del sistema
 
-- macOS 10.13 o posterior
+- macOS 10.12 o posterior
 - Procesador Intel o Apple Silicon
 - DAW compatible con VST3, AU o AAX
 - Probado en: Pro Tools, Reaper, Logic, Ableton Live y Bitwig
