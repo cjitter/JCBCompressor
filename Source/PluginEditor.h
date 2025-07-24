@@ -154,12 +154,14 @@ private:
             }
             else if (parameterID == "s_AUTORELEASE")
             {
-                // Actualizar texto del botón AR cuando el parámetro cambia por automatización o carga de preset
+                // Actualizar texto del botón AR y alpha del slider REL cuando el parámetro cambia por automatización o carga de preset
                 juce::Component::SafePointer<JCBCompressorAudioProcessorEditor> safeEditor(editor);
                 
                 juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
+                    if (safeEditor) {
                         safeEditor->updateARButtonText();
+                        safeEditor->updateRelSliderAlpha();
+                    }
                 });
             }
         }
@@ -820,6 +822,7 @@ private:
     //==========================================================================
     void handleParameterChange();
     void updateARButtonText();
+    void updateRelSliderAlpha();
     
     //==========================================================================
     // GESTIÓN DE TOOLTIPS

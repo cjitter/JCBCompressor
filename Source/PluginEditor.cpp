@@ -169,7 +169,8 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     updateAllTooltips();
     
     // Configurar AUTO RELEASE button
-    updateARButtonText();  // Establecer texto inicial basado en el estado
+    updateARButtonText();    // Establecer texto inicial basado en el estado
+    updateRelSliderAlpha();  // Establecer alpha inicial del slider REL basado en el estado AR
     
     // Configurar estados iniciales
     bool initialDeltaState = processor.apvts.getRawParameterValue("v_DELTA")->load() > 0.5f;
@@ -1067,6 +1068,13 @@ void JCBCompressorAudioProcessorEditor::updateARButtonText()
     // Actualizar texto del botón AR basado en el estado del toggle
     bool isOn = rightBottomKnobs.autorelButton.getToggleState();
     rightBottomKnobs.autorelButton.setButtonText(isOn ? "AR ON" : "AR OFF");
+}
+
+void JCBCompressorAudioProcessorEditor::updateRelSliderAlpha()
+{
+    // Actualizar alpha del slider REL basado en el estado del botón AR
+    bool arIsOn = rightBottomKnobs.autorelButton.getToggleState();
+    rightBottomKnobs.relSlider.setAlpha(arIsOn ? 0.3f : 1.0f);
 }
 
 //==============================================================================
