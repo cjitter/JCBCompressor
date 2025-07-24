@@ -334,7 +334,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-    juce::TextButton titleLink{"JCBComp v0.9.99 beta"};
+    juce::TextButton titleLink{"JCBComp v0.9.991 beta"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
