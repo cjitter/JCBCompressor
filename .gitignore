@@ -1,11 +1,11 @@
 **/.DS_Store
 tools/
+Max/GenExpr.txt
 
 # Carpetas de build
 build/
 cmake-build-*/
 build-xcode/
-
 
 # Archivos temporales de testing
 pluginval_temp/
@@ -19,3 +19,5 @@ CLAUDE.md
 # Scripts manuales de compilación final plugins mediante xcode toolchain
 build-xcode-aax-release.sh
 build-xcode-vst3-au-release.sh
+build-xcode-au_script.sh
+build-xcode-vst3_script.sh

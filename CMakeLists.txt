@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(JCBCompressor VERSION 0.9.99)
+project(JCBCompressor VERSION 0.9.991)
 
 # Configuración C++
 set(CMAKE_CXX_STANDARD 20)
@@ -27,7 +27,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Versión mínima de macOS
-set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Versión mínima de macOS")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Versión mínima de macOS")
 
 # Binary Universal (Apple Silicon + Intel)
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Arquitecturas de compilación para macOS")
@@ -51,7 +51,7 @@ set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(JUCE)
 
 # Opciones de configuración
-option(JUCE_BUILD_AAX "Build AAX format (requires AAX SDK and Pro Tools Developer)" OFF)
+option(JUCE_BUILD_AAX "Build AAX format (requires AAX SDK and Pro Tools Developer)" ON)
 option(JUCE_AUTO_INSTALL_PLUGINS "Auto-install plugins after build" ON)
 
 # SDK externo opcional (AAX) para macOS
@@ -69,15 +69,15 @@ juce_add_plugin(JCBCompressor
         # Información básica del plugin
         PLUGIN_NAME "JCBCompressor"
         PRODUCT_NAME "JCBCompressor"
-        VERSION 0.9.99
+        VERSION 0.9.991
         DESCRIPTION "Stereo-linked feedforward compressor with external sidechain, parallel processing and lookahead"
 
         # Información de la empresa
         COMPANY_NAME "Coeval"
         COMPANY_WEBSITE "https://github.com/cjitter"
         BUNDLE_ID "com.coeval.JCBCompressor"
-        PLUGIN_MANUFACTURER_CODE CoeV
-        PLUGIN_CODE CoE1
+        PLUGIN_MANUFACTURER_CODE "CoeV"
+        PLUGIN_CODE "CoE1"
 
         # Formatos soportados
         FORMATS ${PLUGIN_FORMATS}

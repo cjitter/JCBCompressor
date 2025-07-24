@@ -374,7 +374,7 @@ private:
         {
             setInterceptsMouseClicks(true, true);
             setAlwaysOnTop(false);  // Cambiado a false para permitir que el código aparezca encima
-            setWantsKeyboardFocus(false);  // No necesita foco, no maneja eventos de teclado
+            setWantsKeyboardFocus(true);  // No necesita foco, no maneja eventos de teclado
             
             // Cargar la imagen del diagrama PNG
             diagramImage = juce::ImageCache::getFromMemory(BinaryData::diagram_png,
