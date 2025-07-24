@@ -23,6 +23,7 @@
 #include "Helpers/UTF8Helper.h"
 #include "BinaryData.h"
 
+
 //==============================================================================
 // CONSTRUCTOR Y DESTRUCTOR
 //==============================================================================
@@ -406,10 +407,10 @@ void JCBCompressorAudioProcessorEditor::resized()
     scMeterR.setBounds(getScaledBounds(34, 42, 12, 117));
     
     // Sliders de trim superpuestos a los meters
-    trimSlider.setBounds(getScaledBounds(2, 42, 22, 117));  // Más ancho para cubrir ambos L/R
+    trimSlider.setBounds(getScaledBounds(2, 40, 22, 130));  // Altura expandida para TextBox integrado
     
     // Sliders de trim de sidechain superpuestos a los medidores de sidechain
-    scTrimSlider.setBounds(getScaledBounds(24, 42, 22, 117));  // Más ancho para cubrir ambos L/R
+    scTrimSlider.setBounds(getScaledBounds(24, 40, 22, 130));  // Altura expandida para TextBox integrado
     
     // Medidor GR (centro-derecha) - ancho aumentado para mejor visibilidad
     grMeter.setBounds(getScaledBounds(440, 48, 6, 103));
@@ -419,7 +420,7 @@ void JCBCompressorAudioProcessorEditor::resized()
     outputMeterR.setBounds(getScaledBounds(687, 42, 12, 117));
     
     // Sliders de makeup superpuestos a los medidores de salida
-    makeupSlider.setBounds(getScaledBounds(677, 42, 22, 117));
+    makeupSlider.setBounds(getScaledBounds(677, 40, 22, 130));  // Altura expandida para TextBox integrado
     
     
     // === TRANSFER FUNCTION DISPLAY (CENTER) ===
@@ -428,7 +429,6 @@ void JCBCompressorAudioProcessorEditor::resized()
     float w = 335.0f * 700.0f / 1247.0f;
     float h = 205.0f * 200.0f / 353.0f - 5.0f;
     transferDisplay.setBounds(getScaledBounds(x, y, w, h));
-    
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
     // Top row - THD, RATIO, KNEE, PARAL
     leftTopKnobs.thdSlider.setBounds(getScaledBounds(50, 48, 53, 53));
@@ -491,15 +491,15 @@ void JCBCompressorAudioProcessorEditor::resized()
     topButtons.abStateButton.setBounds(getScaledBounds(202, 15, 18, 12));
     topButtons.abCopyButton.setBounds(getScaledBounds(222, 15, 22, 12));
     
-    // === BOTONES DE UTILIDAD (INFERIOR IZQUIERDA) - Movidos abajo y a la izquierda ===
-    utilityButtons.undoButton.setBounds(getScaledBounds(15, 174, 22, 12));
-    utilityButtons.redoButton.setBounds(getScaledBounds(37, 174, 22, 12));
-    utilityButtons.resetGuiButton.setBounds(getScaledBounds(61, 174, 30, 12));
-    utilityButtons.runGraphicsButton.setBounds(getScaledBounds(93, 174, 30, 12));
-    utilityButtons.zoomButton.setBounds(getScaledBounds(125, 174, 30, 12));
+    // === BOTONES DE UTILIDAD (INFERIOR IZQUIERDA) ===
+    utilityButtons.undoButton.setBounds(getScaledBounds(15, 179, 22, 12));
+    utilityButtons.redoButton.setBounds(getScaledBounds(37, 179, 22, 12));
+    utilityButtons.resetGuiButton.setBounds(getScaledBounds(61, 179, 30, 12));
+    utilityButtons.runGraphicsButton.setBounds(getScaledBounds(93, 179, 30, 12));
+    utilityButtons.zoomButton.setBounds(getScaledBounds(125, 179, 30, 12));
     // Mover botones de tooltip y lenguaje donde estaba el diagram
-    utilityButtons.tooltipToggleButton.setBounds(getScaledBounds(157, 174, 30, 12));
-    utilityButtons.tooltipLangButton.setBounds(getScaledBounds(189, 174, 22, 12));
+    utilityButtons.tooltipToggleButton.setBounds(getScaledBounds(157, 179, 30, 12));
+    utilityButtons.tooltipLangButton.setBounds(getScaledBounds(189, 179, 22, 12));
     
     // Botones DELTA, DIAGRAM y BYPASS - DIAGRAM alineado con botones de sidechain arriba
     const int centerButtonsY = 163;
@@ -516,7 +516,7 @@ void JCBCompressorAudioProcessorEditor::resized()
     // Botones TODO movidos abajo a la derecha, centrados en el rectángulo
     // Calcular posición central para el grupo de botones TODO
     const int todoStartX = 500;    // Movido a la derecha para mejor centrado en el rectángulo
-    const int todoY = 174;       // Mismo Y que botones de utilidad
+    const int todoY = 179;       // Mismo Y que botones de utilidad
     utilityButtons.hqButton.setBounds(getScaledBounds(todoStartX, todoY, 18, 12));
     utilityButtons.dualMonoButton.setBounds(getScaledBounds(todoStartX + 20, todoY, 23, 12));
     utilityButtons.stereoLinkedButton.setBounds(getScaledBounds(todoStartX + 45, todoY, 23, 12));
@@ -1552,6 +1552,11 @@ void JCBCompressorAudioProcessorEditor::setupMeters()
     scTrimSlider.setVisible(true);
     scTrimSlider.setEnabled(false);
     scTrimSlider.setAlpha(0.25f);
+    
+    //==========================================================================
+    // CONFIGURAR DISPLAYS INDEPENDIENTES
+    //==========================================================================
+    
 }
 
 void JCBCompressorAudioProcessorEditor::setupSidechainControls()
@@ -3139,7 +3144,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "lookahead") return JUCE_UTF8("LOOK AHEAD: retardo para evitar overshooting\nReporta latencia al host\nRango: 0 a 10 ms | Por defecto: 0 ms");
         if (key == "clip") return JUCE_UTF8("SOFT CLIP: limitador suave de salida\nPreviene saturación con distorsión armónica\nRango: 0/OFF a 1 | Por defecto: 0/OFF");
         if (key == "again") return JUCE_UTF8("AUTO GAIN: compensación parcial de ganancia\nRecupera ~70% del nivel, funciona junto con makeup\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "algo") return JUCE_UTF8("ALGORITHM: tipo de detector\nSliding: rápido y preciso | EXPO RMS: clásico | Slow RMS: suave\nRango: 0-2 | Por defecto: 1 (EXPO RMS)");
+        if (key == "algo") return JUCE_UTF8("ALGORITHM: tipo de detector interpolado\nSliding: rápido y preciso | EXPO RMS: clásico | Slow RMS: suave\nRango continuo entre 0-2 | Por defecto: 1 (EXPO RMS)");
         if (key == "react") return JUCE_UTF8("REACT: respuesta del detector a transientes.\nValores bajos: suave | Valores altos: agresivo.\nRango: 0 a 100% | Por defecto: 0%");
         if (key == "attack") return JUCE_UTF8("ATTACK: tiempo para alcanzar máxima compresión\nVelocidad de respuesta del compresor\nRango: 0.1 a 100 ms | Por defecto: 5 ms");
         if (key == "release") return JUCE_UTF8("RELEASE: tiempo para volver sin compresión\nPermite valores extremos que distorsionan\nRango: 0.1 a 1000 ms | Por defecto: 30 ms");
@@ -3216,8 +3221,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "sctrim") return "SC TRIM: sidechain input gain -12 to +12 dB\nAdjusts external sidechain level\nDefault: 0 dB, activated with EXT KEY";
         if (key == "link") return "STEREO LINKED: always active.\nPlugin only works in stereo linked mode.\nBoth channels are always linked";
         if (key == "smooth") return "SMOOTH: extra envelope detector smoothing\nControls smoothing amount applied to detection\nRange: 0 (RAW) to 1 (SMOOTH) | Default: 0";
-        if (key == "algo") return "ALGORITHM: detector type\nSliding: fast and precise | EXPO RMS: classic | Slow RMS: smooth\nRange: 0-2 | Default: 1 (EXPO RMS)";
-    }
+        if (key == "algo") return "ALGORITHM: interpolated detector type\nSliding: fast and precise | EXPO RMS: classic | Slow RMS: smooth\nContinuous range 0–2 | Default: 1 (EXPO RMS)";    }
     
     return "";
 }

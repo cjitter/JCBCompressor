@@ -31,6 +31,9 @@
  * - Callback para click derecho (reset u otras acciones)
  * - Estilo visual integrado con DarkTheme
  */
+
+
+
 class TrimSlider : public CustomSlider
 {
 public:
@@ -42,7 +45,7 @@ public:
     {
         // Configuración básica del slider vertical
         setSliderStyle(juce::Slider::LinearVertical);
-        setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+        setTextBoxStyle(juce::Slider::TextBoxBelow, false, 50, 16);
         
         // Configuración de rango y valores
         setRange(-12.0, 12.0, 0.1);
@@ -54,6 +57,13 @@ public:
         setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
         setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);
         setColour(juce::Slider::thumbColourId, juce::Colours::white.withAlpha(0.9f));  // Blanco consistente
+        
+        // Configuración del TextBox integrado
+        setTextBoxIsEditable(true);
+        setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+        setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
+        //setTextValueSuffix(" dB");
+        
     }
     
     //==========================================================================
@@ -75,7 +85,7 @@ public:
         auto thumbBounds = juce::Rectangle<float>(bounds.getWidth() - 8, 4).withCentre(juce::Point<float>(bounds.getCentreX(), sliderPos));
         g.fillRoundedRectangle(thumbBounds, 2.0f);
         
-        // Nota: El valor se mostrará en un TextBox separado, no aquí
+        // Nota: El valor se muestra en el TextBox integrado de JUCE
     }
     
     //==========================================================================
@@ -107,6 +117,7 @@ public:
         }
     }
     
+    
     //==========================================================================
     // CALLBACK PARA CLICK DERECHO
     //==========================================================================
@@ -120,3 +131,4 @@ public:
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TrimSlider)
 };
+
