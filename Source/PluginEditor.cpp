@@ -64,9 +64,9 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v0.9.991 beta";  // Solo versión para Logic Pro
+        titleText = "v0.9.992 beta";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBCompressor v0.9.991 beta";  // Nombre completo para otros DAWs
+        titleText = "JCBCompressor v0.9.992 beta";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -3136,7 +3136,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v0.9.991 beta\nPlugin educativo open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v0.9.992 beta\nPlugin educativo open source\nClick para créditos");
         if (key == "thd") return JUCE_UTF8("THRESHOLD: nivel donde comienza la compresión\nSeñales sobre este nivel se comprimen\nRango: -60 a 0 dB | Por defecto: -18 dB");
         if (key == "ratio") return JUCE_UTF8("RATIO: cantidad de compresión aplicada\nRelación entrada/salida sobre el threshold\nRango: 1:1 a 20:1 | Por defecto: 4:1");
         if (key == "knee") return JUCE_UTF8("KNEE: suavidad de la transición en el threshold\nCrea una curva gradual en vez de ángulo duro\nRango: 0 a 30 dB | Por defecto: 0 dB");
@@ -3181,7 +3181,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBCompressor: audio compressor v0.9.991 beta\nOpen source educational plugin\nClick for credits";
+        if (key == "title") return "JCBCompressor: audio compressor v0.9.992 beta\nOpen source educational plugin\nClick for credits";
         if (key == "thd") return "THRESHOLD: level where compression begins\nSignals above this level are compressed\nRange: -60 to 0 dB | Default: -18 dB";
         if (key == "ratio") return "RATIO: amount of compression applied\nInput/output relationship above threshold\nRange: 1:1 to 20:1 | Default: 4:1";
         if (key == "knee") return "KNEE: smoothness of the threshold transition\nCreates a gradual curve instead of hard angle\nRange: 0 to 30 dB | Default: 0 dB";
