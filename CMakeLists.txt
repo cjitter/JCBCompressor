@@ -134,10 +134,10 @@ juce_add_binary_data(JCBCompressor_BinaryData
         Assets/code/GainCalc.txt
         Assets/code/Output.txt
         # Presets de fábrica
-        Assets/FactoryPresets/Gentle_Compression.preset
-        Assets/FactoryPresets/Vocal_Warmth.preset
-        Assets/FactoryPresets/Drum_Bus_Glue.preset
-        Assets/FactoryPresets/Master_Bus.preset
+        Assets/FactoryPresets/Mix_Gentle_Compression.preset
+        Assets/FactoryPresets/Voces_Warmth.preset
+        Assets/FactoryPresets/Drums_Bus_Glue.preset
+        Assets/FactoryPresets/Mix_Master_Bus.preset
 )
 
 # Linkear binary data al plugin

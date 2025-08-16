@@ -54,10 +54,8 @@ public:
     
     void addItem(const juce::String& text, int itemId);
     void addItemList(const juce::StringArray& itemsToAdd, int firstId);
-    void addCategoryItem(const juce::String& categoryName, const juce::StringArray& subItems, int startId);
     void clear();
     void setSelectedId(int newItemId);
-    void setSelectedIdWithoutNotification(int newItemId);
     int getSelectedId() const;
     int getNumItems() const;
     juce::String getText() const;
@@ -68,12 +66,6 @@ public:
     void setJustificationType(juce::Justification justification);
     void setTextItalic(bool shouldBeItalic);
     juce::String getTextWhenNothingSelected() const;
-    
-    //==========================================================================
-    // MÉTODOS DE UTILIDAD
-    //==========================================================================
-    
-    std::vector<int> getAllSelectableIds() const;
     
     //==========================================================================
     // CALLBACK DE CAMBIO
@@ -133,24 +125,6 @@ private:
         CustomComboBox& comboBox;
         int hoveredItem = -1;
         
-        // Submenú para categorías
-        class SubMenu : public juce::Component
-        {
-        public:
-            SubMenu(PopupWindow& parent, const juce::StringArray& items, const std::vector<int>& ids);
-            void paint(juce::Graphics& g) override;
-            void mouseDown(const juce::MouseEvent& event) override;
-            void mouseMove(const juce::MouseEvent& event) override;
-            
-            PopupWindow& parentWindow;
-            juce::StringArray subItems;
-            std::vector<int> subItemIds;
-            int hoveredIndex = -1;
-        };
-        
-        std::unique_ptr<SubMenu> activeSubMenu;
-        int hoveredCategoryIndex = -1;
-        
         // Componentes para el sistema de scroll
         std::unique_ptr<ListContainer> listContainer;
         std::unique_ptr<juce::Viewport> viewport;
@@ -197,10 +171,6 @@ private:
     {
         juce::String text;
         int id;
-        bool isCategory = false;
-        bool isSeparator = false;
-        juce::StringArray subItems;
-        std::vector<int> subItemIds;
     };
     
     //==========================================================================

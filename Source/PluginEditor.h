@@ -15,6 +15,7 @@
 
 // Librerías estándar C++
 #include <unordered_map>
+#include <map>
 
 // Archivos del proyecto
 #include "PluginProcessor.h"
@@ -896,6 +897,9 @@ private:
     // Banderas de estado principales
     bool isLoadingPreset = false;
     bool isProcessingQueue = false;  // Flag para prevenir deshacer durante procesamiento de cola
+    
+    // Mapeo de IDs de menú a nombres de presets para sistema jerárquico
+    std::map<int, juce::String> presetIdToNameMap;
     bool isBypassed = false;
     bool bypassTextVisible = false;
     // Estado de interfaz
