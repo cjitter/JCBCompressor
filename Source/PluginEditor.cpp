@@ -64,9 +64,9 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v0.9.992 beta";  // Solo versión para Logic Pro
+        titleText = "v0.9.993 beta";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBCompressor v0.9.992 beta";  // Nombre completo para otros DAWs
+        titleText = "JCBCompressor v0.9.993 beta";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -146,12 +146,16 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     // Updates iniciales
     updateTransferDisplay();
     
-    // Crear y registrar parameter listener para updates de automatización
+    // Crear y registrar parameter listeners para updates de automatización
     transferFunctionListener = std::make_unique<TransferFunctionParameterListener>(this);
     processor.apvts.addParameterListener("b_THD", transferFunctionListener.get());
     processor.apvts.addParameterListener("c_RATIO", transferFunctionListener.get());
     processor.apvts.addParameterListener("h_KNEE", transferFunctionListener.get());
     processor.apvts.addParameterListener("s_AUTORELEASE", transferFunctionListener.get());
+    
+    // Registrar listener para DELTA para sincronización automática
+    deltaParameterListener = std::make_unique<DeltaParameterListener>(this);
+    processor.apvts.addParameterListener("v_DELTA", deltaParameterListener.get());
     
     // Configurar estado inicial del idioma
     if (processor.getTooltipLanguageEnglish()) {
@@ -176,79 +180,10 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     // Configurar estados iniciales
     bool initialDeltaState = processor.apvts.getRawParameterValue("v_DELTA")->load() > 0.5f;
     parameterButtons.deltaButton.setButtonText("DELTA");  // Texto siempre igual
-    transferDisplay.setEnvelopeVisible(!initialDeltaState);  // Ocultar envolventes si DELTA está ON
+    
+    // Aplicar estado inicial de DELTA usando el método centralizado
     if (initialDeltaState) {
-        // Configurar medidores en modo delta
-        inputMeterL.setDeltaMode(true);
-        inputMeterR.setDeltaMode(true);
-        outputMeterL.setDeltaMode(true);
-        outputMeterR.setDeltaMode(true);
-        scMeterL.setDeltaMode(true);
-        scMeterR.setDeltaMode(true);
-        
-        // Atenuar medidores de entrada
-        inputMeterL.setAlpha(0.2f);
-        inputMeterR.setAlpha(0.2f);
-        scMeterL.setAlpha(0.2f);
-        scMeterR.setAlpha(0.2f);
-        
-        // Atenuar sliders de trim
-        trimSlider.setAlpha(0.2f);
-        scTrimSlider.setAlpha(0.2f);
-        
-        // Activar modo DELTA en TransferFunctionDisplay
-        transferDisplay.setDeltaMode(true);
-        
-        // Establecer fondo delta si está activo
-        if (deltaBackground.isValid()) {
-            backgroundImage.setImage(deltaBackground, juce::RectanglePlacement::stretchToFit);
-        }
-        
-        // Deshabilitar diagram cuando DELTA está activo al inicio
-        centerButtons.diagramButton.setEnabled(false);
-        centerButtons.diagramButton.setAlpha(0.25f);
-        
-        // Deshabilitar otros controles cuando DELTA está activo al inicio
-        // Presets
-        presetArea.saveButton.setEnabled(false);
-        presetArea.saveButton.setAlpha(0.25f);
-        presetArea.saveAsButton.setEnabled(false);
-        presetArea.saveAsButton.setAlpha(0.25f);
-        presetArea.deleteButton.setEnabled(false);
-        presetArea.deleteButton.setAlpha(0.25f);
-        presetArea.backButton.setEnabled(false);
-        presetArea.backButton.setAlpha(0.25f);
-        presetArea.nextButton.setEnabled(false);
-        presetArea.nextButton.setAlpha(0.25f);
-        presetArea.presetMenu.setEnabled(false);
-        presetArea.presetMenu.setAlpha(0.25f);
-        
-        // UNDO/REDO
-        utilityButtons.undoButton.setEnabled(false);
-        utilityButtons.undoButton.setAlpha(0.15f);  // Dimear más fuerte
-        utilityButtons.redoButton.setEnabled(false);
-        utilityButtons.redoButton.setAlpha(0.15f);  // Dimear más fuerte
-        
-        // A/B y copiar
-        topButtons.abStateButton.setEnabled(false);
-        topButtons.abStateButton.setAlpha(0.15f);  // Dimear más fuerte
-        topButtons.abCopyButton.setEnabled(false);
-        topButtons.abCopyButton.setAlpha(0.15f);  // Dimear más fuerte
-        
-        // SOLO SC
-        sidechainControls.soloScButton.setEnabled(false);
-        // SOLO SC siempre con alpha 1.0
-        
-        // Botones TODO
-        utilityButtons.hqButton.setAlpha(0.25f);
-        utilityButtons.dualMonoButton.setAlpha(0.25f);
-        utilityButtons.stereoLinkedButton.setAlpha(0.25f);
-        utilityButtons.msButton.setAlpha(0.25f);
-        utilityButtons.midiLearnButton.setAlpha(0.25f);
-        
-        // BYPASS
-        parameterButtons.bypassButton.setEnabled(false);
-        parameterButtons.bypassButton.setAlpha(0.25f);
+        applyDeltaModeToAllControls(true);
     }
     
     updateButtonStates();
@@ -306,6 +241,11 @@ JCBCompressorAudioProcessorEditor::~JCBCompressorAudioProcessorEditor()
         processor.apvts.removeParameterListener("c_RATIO", transferFunctionListener.get());
         processor.apvts.removeParameterListener("h_KNEE", transferFunctionListener.get());
         processor.apvts.removeParameterListener("s_AUTORELEASE", transferFunctionListener.get());
+    }
+    
+    if (deltaParameterListener)
+    {
+        processor.apvts.removeParameterListener("v_DELTA", deltaParameterListener.get());
     }
     
     setLookAndFeel(nullptr);
@@ -396,6 +336,8 @@ void JCBCompressorAudioProcessorEditor::resized()
     
     // El background llena toda el área
     backgroundImage.setBounds(getLocalBounds());
+    // Asegurar que el background siempre esté al fondo al redimensionar
+    backgroundImage.toBack();
     
     // === METERS CON SLIDERS DE TRIM/MAKEUP ===
     // Meters de entrada (lado izquierdo)
@@ -874,6 +816,9 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &topButtons.abStateButton)
     {
+        // Salir de DELTA antes de alternar estado A/B
+        exitDeltaMode();
+        
         // Alternar estado A/B
         processor.toggleAB();
         
@@ -895,6 +840,9 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &topButtons.abCopyButton)
     {
+        // Salir de DELTA antes de copiar estado
+        exitDeltaMode();
+        
         // Copiar estado actual al otro
         if (processor.getIsStateA()) {
             processor.copyAtoB();
@@ -997,7 +945,9 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
     // Manejador del botón CODE removido - funcionalidad manejada por botón DIAGRAM
     else if (button == &parameterButtons.deltaButton)
     {
-        if (parameterButtons.deltaButton.getToggleState()) {
+        bool deltaActive = parameterButtons.deltaButton.getToggleState();
+        
+        if (deltaActive) {
             // DELTA desactiva BYPASS, SOLO SC y DIAGRAM
             parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
             sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
@@ -1005,13 +955,10 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
                 centerButtons.diagramButton.setToggleState(false, juce::dontSendNotification);
                 hideDiagram(); // Cerrar DIAGRAM si está abierto
             }
-            
-            // Activar modo DELTA en display
-            transferDisplay.setDeltaMode(true);
-        } else {
-            // Desactivar modo DELTA en display
-            transferDisplay.setDeltaMode(false);
         }
+        
+        // Aplicar estado centralizado de DELTA
+        applyDeltaModeToAllControls(deltaActive);
         
         updateButtonStates();
     }
@@ -1766,6 +1713,9 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
         int selectedId = presetArea.presetMenu.getSelectedId();
         if (selectedId == 0) return;
         
+        // Salir de DELTA al seleccionar un preset
+        exitDeltaMode();
+        
         // CRÍTICO: Establecer flag de carga PRIMERO para prevenir transacciones de undo
         isLoadingPreset = true;
         
@@ -2352,6 +2302,10 @@ void JCBCompressorAudioProcessorEditor::updateBackgroundState()
     else {
         backgroundImage.setImage(normalBackground, juce::RectanglePlacement::stretchToFit);
     }
+    
+    // IMPORTANTE: Asegurar que el background siempre esté al fondo después de cambiar la imagen
+    // Esto previene que el background bloquee otros componentes cuando DELTA está activo
+    backgroundImage.toBack();
 }
 
 void JCBCompressorAudioProcessorEditor::updateMeterStates()
@@ -2391,6 +2345,73 @@ void JCBCompressorAudioProcessorEditor::updateMeterStates()
     // Actualizar gradiente de salida para modo bypass
     outputMeterL.setBypassMode(bypassActive);
     outputMeterR.setBypassMode(bypassActive);
+    
+    // Sincronizar TransferDisplay con modo bypass
+    transferDisplay.setBypassMode(bypassActive);
+}
+
+void JCBCompressorAudioProcessorEditor::applyDeltaModeToAllControls(bool deltaActive)
+{
+    // IMPORTANTE: Mantener TODOS los componentes habilitados
+    // Solo cambiar aspectos visuales (colores de medidores y display)
+    
+    if (deltaActive) {
+        // Cambiar medidores a modo delta (gradiente verde)
+        inputMeterL.setDeltaMode(true);
+        inputMeterR.setDeltaMode(true);
+        outputMeterL.setDeltaMode(true);
+        outputMeterR.setDeltaMode(true);
+        scMeterL.setDeltaMode(true);
+        scMeterR.setDeltaMode(true);
+        grMeter.setDeltaMode(true);
+        
+        // Atenuar medidores de entrada (efecto visual opcional)
+        inputMeterL.setAlpha(0.2f);
+        inputMeterR.setAlpha(0.2f);
+        scMeterL.setAlpha(0.2f);
+        scMeterR.setAlpha(0.2f);
+        
+        // Atenuar sliders de trim (efecto visual opcional)
+        trimSlider.setAlpha(0.2f);
+        scTrimSlider.setAlpha(0.2f);
+        
+        // Activar modo delta en display
+        transferDisplay.setDeltaMode(true);
+        transferDisplay.setEnvelopeVisible(false);
+    }
+    else {
+        // Restaurar todo a normal
+        inputMeterL.setDeltaMode(false);
+        inputMeterR.setDeltaMode(false);
+        outputMeterL.setDeltaMode(false);
+        outputMeterR.setDeltaMode(false);
+        scMeterL.setDeltaMode(false);
+        scMeterR.setDeltaMode(false);
+        grMeter.setDeltaMode(false);
+        
+        // Restaurar alpha normal
+        inputMeterL.setAlpha(1.0f);
+        inputMeterR.setAlpha(1.0f);
+        scMeterL.setAlpha(1.0f);
+        scMeterR.setAlpha(1.0f);
+        trimSlider.setAlpha(1.0f);
+        scTrimSlider.setAlpha(1.0f);
+        
+        // Desactivar modo delta en display
+        transferDisplay.setDeltaMode(false);
+        transferDisplay.setEnvelopeVisible(true);
+    }
+    
+    // NOTA: NO tocamos ningún botón (presets, A/B, utilidad, etc.)
+    // Todos permanecen enabled=true y alpha=1.0f para permitir salida automática de DELTA
+}
+
+void JCBCompressorAudioProcessorEditor::exitDeltaMode()
+{
+    // Salir de modo DELTA si está activo
+    if (parameterButtons.deltaButton.getToggleState()) {
+        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
+    }
 }
 
 void JCBCompressorAudioProcessorEditor::updateTransferDisplay()
@@ -2999,6 +3020,9 @@ void JCBCompressorAudioProcessorEditor::showCustomAlertDialog(const juce::String
 
 void JCBCompressorAudioProcessorEditor::showCredits()
 {
+    // Salir de DELTA antes de mostrar créditos para evitar overlay verde
+    exitDeltaMode();
+    
     if (creditsOverlay == nullptr)
     {
         // Obtener el formato del plugin desde el processor
@@ -3136,7 +3160,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v0.9.992 beta\nPlugin educativo open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v0.9.993 beta\nPlugin educativo open source\nClick para créditos");
         if (key == "thd") return JUCE_UTF8("THRESHOLD: nivel donde comienza la compresión\nSeñales sobre este nivel se comprimen\nRango: -60 a 0 dB | Por defecto: -18 dB");
         if (key == "ratio") return JUCE_UTF8("RATIO: cantidad de compresión aplicada\nRelación entrada/salida sobre el threshold\nRango: 1:1 a 20:1 | Por defecto: 4:1");
         if (key == "knee") return JUCE_UTF8("KNEE: suavidad de la transición en el threshold\nCrea una curva gradual en vez de ángulo duro\nRango: 0 a 30 dB | Por defecto: 0 dB");
@@ -3181,7 +3205,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBCompressor: audio compressor v0.9.992 beta\nOpen source educational plugin\nClick for credits";
+        if (key == "title") return "JCBCompressor: audio compressor v0.9.993 beta\nOpen source educational plugin\nClick for credits";
         if (key == "thd") return "THRESHOLD: level where compression begins\nSignals above this level are compressed\nRange: -60 to 0 dB | Default: -18 dB";
         if (key == "ratio") return "RATIO: amount of compression applied\nInput/output relationship above threshold\nRange: 1:1 to 20:1 | Default: 4:1";
         if (key == "knee") return "KNEE: smoothness of the threshold transition\nCreates a gradual curve instead of hard angle\nRange: 0 to 30 dB | Default: 0 dB";

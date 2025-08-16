@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(JCBCompressor VERSION 0.9.992)
+project(JCBCompressor VERSION 0.9.993)
 
 # Configuración C++
 set(CMAKE_CXX_STANDARD 20)
@@ -69,7 +69,7 @@ juce_add_plugin(JCBCompressor
         # Información básica del plugin
         PLUGIN_NAME "JCBCompressor"
         PRODUCT_NAME "JCBCompressor"
-        VERSION 0.9.992
+        VERSION 0.9.993
         DESCRIPTION "Stereo-linked feedforward compressor with external sidechain, parallel processing and lookahead"
 
         # Información de la empresa

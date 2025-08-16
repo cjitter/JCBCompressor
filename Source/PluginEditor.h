@@ -169,6 +169,31 @@ private:
         JCBCompressorAudioProcessorEditor* editor;
     };
     
+    // Listener de parámetro DELTA para sincronización automática
+    struct DeltaParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    {
+        JCBCompressorAudioProcessorEditor* editor;
+        
+        DeltaParameterListener(JCBCompressorAudioProcessorEditor* ed) : editor(ed) {}
+        
+        void parameterChanged(const juce::String& parameterID, float newValue) override
+        {
+            if (parameterID == "v_DELTA")
+            {
+                // Thread-safe UI update
+                juce::Component::SafePointer<JCBCompressorAudioProcessorEditor> safeEditor(editor);
+                juce::MessageManager::callAsync([safeEditor, newValue]()
+                {
+                    if (safeEditor != nullptr)
+                    {
+                        bool deltaActive = newValue > 0.5f;
+                        safeEditor->applyDeltaModeToAllControls(deltaActive);
+                    }
+                });
+            }
+        }
+    };
+    
     //==========================================================================
     // COMPONENTES DE DISPLAY PRINCIPALES
     //==========================================================================
@@ -339,7 +364,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-    juce::TextButton titleLink{"JCBComp v0.9.992 beta"};
+    juce::TextButton titleLink{"JCBComp v0.9.993 beta"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
@@ -794,6 +819,8 @@ private:
     void updateBackgroundState();
     void updateMeterStates();
     void updateTransferDisplay();
+    void applyDeltaModeToAllControls(bool deltaActive);
+    void exitDeltaMode();
     void updateMeters();
     void updateSliderValues();
     
@@ -905,6 +932,7 @@ private:
     
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
+    std::unique_ptr<DeltaParameterListener> deltaParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBCompressorAudioProcessorEditor)
 };

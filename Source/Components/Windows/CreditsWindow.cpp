@@ -324,7 +324,7 @@ void CreditsWindow::buildFullCreditsTextSpanish()
     links.clear();
     
     // Generar texto formateado con saltos de línea para llenar el diálogo
-    fullText = "\nJCBCompressor v0.9.992 beta";
+    fullText = "\nJCBCompressor v0.9.993 beta";
     if (pluginFormat.isNotEmpty())
         fullText += " (" + pluginFormat + ")";
     fullText += "\n";
@@ -373,7 +373,7 @@ void CreditsWindow::buildFullCreditsTextEnglish()
     links.clear();
 
     // Generar texto formateado con saltos de línea para llenar el diálogo
-    fullText = "\nJCBCompressor v0.9.992 beta";
+    fullText = "\nJCBCompressor v0.9.993 beta";
     if (pluginFormat.isNotEmpty())
         fullText += " (" + pluginFormat + ")";
     fullText += "\n";
