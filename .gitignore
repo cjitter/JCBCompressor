@@ -21,3 +21,6 @@ build-xcode-aax-release.sh
 build-xcode-vst3-au-release.sh
 build-xcode-au_script.sh
 build-xcode-vst3_script.sh
+
+# Var
+JCB_Latency_Lookahead_Study.md
