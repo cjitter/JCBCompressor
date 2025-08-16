@@ -664,6 +664,10 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &sidechainControls.keyButton)
     {
+        // Actualizar texto del botón según su estado
+        bool keyActive = sidechainControls.keyButton.getToggleState();
+        sidechainControls.keyButton.setButtonText(keyActive ? "SC EXT" : "SC INT");
+        
         // Actualizar visibilidad del medidor de sidechain cuando KEY es activado
         updateButtonStates();
         
@@ -1600,10 +1604,20 @@ void JCBCompressorAudioProcessorEditor::setupSidechainControls()
     sidechainControls.keyButton.setEnabled(true);  // SIEMPRE HABILITADO
     sidechainControls.keyButton.addListener(this);
     addAndMakeVisible(sidechainControls.keyButton);
+    
+    // Configurar texto inicial basado en el estado
+    bool initialKeyState = processor.apvts.getRawParameterValue("r_KEY")->load() > 0.5f;
+    sidechainControls.keyButton.setButtonText(initialKeyState ? "SC EXT" : "SC INT");
+    
     sidechainControls.keyAttachment = std::make_unique<UndoableButtonAttachment>(
         *processor.apvts.getParameter("r_KEY"), sidechainControls.keyButton, &undoManager);
-    sidechainControls.keyAttachment->onParameterChange = [this]() { handleParameterChange(); };
-    sidechainControls.keyButton.setTooltip(JUCE_UTF8("EXT KEY: usa entrada externa como sidechain.\nCanales 3-4 controlan la compresión de canales 1-2.\nValor por defecto: OFF"));
+    sidechainControls.keyAttachment->onParameterChange = [this]() { 
+        // Actualizar texto del botón cuando cambia el parámetro
+        bool keyActive = sidechainControls.keyButton.getToggleState();
+        sidechainControls.keyButton.setButtonText(keyActive ? "SC EXT" : "SC INT");
+        handleParameterChange(); 
+    };
+    sidechainControls.keyButton.setTooltip(JUCE_UTF8("SC INT/EXT: selecciona la fuente del sidechain.\nSC INT: usa la señal interna\nSC EXT: usa entrada externa (canales 3-4)\nValor por defecto: SC INT"));
     
     // Botón Solo SC - estilizado como ExpansorGate con acento cálido, SIEMPRE HABILITADO
     sidechainControls.soloScButton.setClickingTogglesState(true);
@@ -3020,8 +3034,21 @@ void JCBCompressorAudioProcessorEditor::showCustomAlertDialog(const juce::String
 
 void JCBCompressorAudioProcessorEditor::showCredits()
 {
-    // Salir de DELTA antes de mostrar créditos para evitar overlay verde
+    // Salir de todos los modos especiales antes de mostrar créditos
+    // para evitar overlays o fondos especiales
+    
+    // Salir de DELTA
     exitDeltaMode();
+    
+    // Salir de BYPASS
+    if (parameterButtons.bypassButton.getToggleState()) {
+        parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
+    }
+    
+    // Salir de SOLO SC
+    if (sidechainControls.soloScButton.getToggleState()) {
+        sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+    }
     
     if (creditsOverlay == nullptr)
     {

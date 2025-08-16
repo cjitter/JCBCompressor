@@ -293,7 +293,7 @@ private:
         CustomSlider hpfSlider{"hpf"};
         CustomSlider lpfSlider{"lpf"};
         juce::TextButton scButton{"FILTERS"};
-        juce::TextButton keyButton{"EXT KEY"};
+        juce::TextButton keyButton{"SC INT"};
         juce::TextButton soloScButton{"SOLO SC"};
         juce::TextButton hpfOrderButton{"12"};
         juce::TextButton lpfOrderButton{"12"};
