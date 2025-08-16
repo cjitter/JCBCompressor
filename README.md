@@ -79,6 +79,19 @@ cmake --build build-release   # Para Release
 - **Formatos disponibles**: VST3, AU y AAX.
 - **Visualización del diagrama de bloques**: Acceso al diagrama completo del compresor con posibilidad de explorar cada bloque y copiar el código GenExpr para usar directamente en objetos Codebox o gen.codebox~ (Max 9).
 
+## Novedades v0.9.993 (última beta antes de la alpha 1.0.0)
+
+- **Corrección de gestión de latencia y sample rate**: ahora el plugin sincroniza correctamente el SR/VS internos de Gen~ mediante `reset()` en `prepareToPlay`, garantizando que los cálculos de lookahead coincidan con los reportados al host.
+- **Latencia consistente en todos los hosts**: se reporta +1 muestra de retardo mínimo (por el retardo intrínseco de Gen~), y se calcula exactamente `ms * SR/1000` para el lookahead. Verificado en Pro Tools con null tests.
+- **Softclip refinado**: aplicado únicamente en la rama WET (y bypassado en modo Delta), evitando residuos o filtrados no deseados en modo DRY.
+- **Null tests verificados**:
+  - DRY 100% ⇒ cancelación perfecta.
+  - WET 100% ⇒ solo se escucha el delta de compresión.
+  - Lookahead 0 ms ⇒ latencia real de 1 muestra (compensada).
+  - Lookahead 10 ms @ 48 kHz ⇒ 480 muestras exactas, commit en fase.
+
+Estas mejoras consolidan la estabilidad y preparan la transición hacia la versión **1.0.0 alpha**.
+
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
 ## Recursos
@@ -129,4 +142,4 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ---
 
-*© 2025 Juan Carlos Blancas – JCBCompressor v0.9.992 beta*
+*© 2025 Juan Carlos Blancas – JCBCompressor v0.9.993 beta*
