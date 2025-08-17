@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 34.0, 88.0, 1852.0, 903.0 ],
+		"rect" : [ 34.0, 87.0, 1852.0, 903.0 ],
 		"gridsize" : [ 15.0, 15.0 ],
 		"boxes" : [ 			{
 				"box" : 				{
@@ -2805,7 +2805,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 124.0, 39.0, 437.0, 22.0 ]
+					"patching_rect" : [ 124.0, 39.0, 464.0, 22.0 ]
 				}
 
 			}
@@ -3174,7 +3174,7 @@
 					"patching_rect" : [ 153.0, 538.0, 314.0, 22.0 ],
 					"saved_object_attributes" : 					{
 						"autoexport" : 0,
-						"exportfolder" : "Sequoia:/Users/jcb/JUCEProjects/JCBComp/exported-code/"
+						"exportfolder" : "Sequoia:/Users/jcb/JUCEProjects/JCBCompressor/exported-code/"
 					}
 ,
 					"text" : "gen~ @title JCBCompressor @autoexport 0"

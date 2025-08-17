@@ -192,13 +192,15 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     transferDisplay.setSoloSidechain(sidechainControls.soloScButton.getToggleState());
     
     // Configurar estado inicial del botón run graphics basado en el processor
-    bool initialEnvelopeState = processor.getEnvelopeVisualEnabled();
-    // El estado del processor indica si las envolventes están visibles
-    // Si las envolventes están visibles, graphics debe estar OFF (false)
-    bool graphicsButtonState = !initialEnvelopeState;
+    // Usar el estado guardado del botón graphics del processor
+    bool graphicsButtonState = processor.displayGraphicsEnvelopes;
+    // Graphics ON = envolventes VISIBLES (mostrar formas de onda en tiempo real)
+    // Graphics OFF = envolventes OCULTAS (mejor rendimiento)
+    bool initialEnvelopeState = graphicsButtonState; // Directo, sin inversión
     transferDisplay.setEnvelopeVisible(initialEnvelopeState);
     utilityButtons.runGraphicsButton.setToggleState(graphicsButtonState, juce::dontSendNotification);
     utilityButtons.runGraphicsButton.setButtonText("graphics");
+    processor.setEnvelopeVisualEnabled(initialEnvelopeState);
     // Configurar visibilidad inicial del grMeter (visible cuando envolventes están visibles)
     grMeter.setVisible(initialEnvelopeState);
     
@@ -695,13 +697,18 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
     else if (button == &utilityButtons.runGraphicsButton)
     {
         bool newState = utilityButtons.runGraphicsButton.getToggleState();
-        // Invertir la lógica: cuando graphics está ON, ocultar visualizaciones
-        transferDisplay.setEnvelopeVisible(!newState);
-        processor.setEnvelopeVisualEnabled(!newState);
-        // Cuando graphics está activo, ocultar grMeter (también considerar SOLO SC)
+        // Graphics ON = mostrar envolventes en tiempo real
+        // Graphics OFF = ocultar envolventes (mejor rendimiento)
+        transferDisplay.setEnvelopeVisible(newState); // Directo, sin inversión
+        processor.setEnvelopeVisualEnabled(newState); // Directo, sin inversión
+        processor.displayGraphicsEnvelopes = newState; // Guardar estado para persistencia en presets
+        // grMeter visible cuando graphics está ON (y SOLO SC no está activo)
         bool soloScActive = sidechainControls.soloScButton.getToggleState();
-        grMeter.setVisible(!newState && !soloScActive);
+        grMeter.setVisible(newState && !soloScActive);
         // Mantener el texto siempre como "graphics"
+        
+        // Marcar el preset como modificado cuando se cambia el estado de graphics
+        handleParameterChange();
     }
     // Botones de gestión de presets
     else if (button == &presetArea.saveButton)
@@ -998,17 +1005,35 @@ void JCBCompressorAudioProcessorEditor::handleParameterChange()
         processor.setPresetTextItalic(true);
         
     } else {
-        // No hay preset seleccionado - verificar si es DEFAULT
+        // No hay preset seleccionado - verificar texto actual
         juce::String currentText = presetArea.presetMenu.getTextWhenNothingSelected();
-        if (currentText == "DEFAULT" || currentText.isEmpty()) {
-            // DEFAULT nunca debe mostrarse como modificado
-            // En su lugar, no mostrar nada
+        
+        if (currentText == "DEFAULT") {
+            // DEFAULT ahora SÍ puede mostrarse como modificado
+            // Esto permite detectar cuando graphics u otros elementos no-APVTS han cambiado
+            presetArea.presetMenu.setTextWhenNothingSelected("DEFAULT*");
+            presetArea.presetMenu.setTextItalic(true);
+            
+            // Guardar el estado visual en el processor
+            processor.setPresetDisplayText("DEFAULT*");
+            processor.setPresetTextItalic(true);
+        }
+        else if (currentText.isEmpty()) {
+            // Si está vacío, no hacer nada
             presetArea.presetMenu.setTextWhenNothingSelected("");
             presetArea.presetMenu.setTextItalic(false);
             
             // Guardar el estado visual en el processor
             processor.setPresetDisplayText("");
             processor.setPresetTextItalic(false);
+        }
+        else if (!currentText.endsWith("*")) {
+            // Si hay un preset cargado (no vacío, no DEFAULT y sin asterisco)
+            // Añadir asterisco y poner en itálica
+            presetArea.presetMenu.setTextWhenNothingSelected(currentText + "*");
+            presetArea.presetMenu.setTextItalic(true);
+            processor.setPresetDisplayText(currentText + "*");
+            processor.setPresetTextItalic(true);
         }
         // Si ya tiene un asterisco, no hacer nada
     }
@@ -1765,6 +1790,12 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
             // Preset DEFAULT: Resetear todos los parámetros a sus valores por defecto definidos
             // Usar acceso directo a parámetros para actualizaciones inmediatas y confiables
             
+            // Verificar el estado actual del preset
+            juce::String previousPresetText = processor.getPresetDisplayText();
+            // Si estamos en "DEFAULT" sin asterisco, no hacer nada con graphics
+            // Si estamos en "DEFAULT*" o cualquier otro preset, activar graphics
+            bool shouldActivateGraphics = (previousPresetText != "DEFAULT");
+            
             // Deshabilitar undo durante la carga de preset
             isLoadingPreset = true;
             
@@ -1900,6 +1931,22 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                 sidechainControls.lpfOrderButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
             
+            // Activar graphics si venimos de cualquier preset modificado o diferente
+            if (shouldActivateGraphics) {
+                // Establecer el botón graphics en ON para el preset DEFAULT
+                utilityButtons.runGraphicsButton.setToggleState(true, juce::dontSendNotification);
+                processor.displayGraphicsEnvelopes = true;
+                
+                // Graphics ON = envolventes VISIBLES
+                transferDisplay.setEnvelopeVisible(true); // VISIBLE
+                processor.setEnvelopeVisualEnabled(true); // VISIBLE
+                
+                // grMeter visible cuando graphics está ON (y SOLO SC no está activo)
+                bool soloScActive = sidechainControls.soloScButton.getToggleState();
+                grMeter.setVisible(!soloScActive); // Visible si SOLO SC no está activo
+            }
+            // Si ya estábamos en DEFAULT sin modificar, mantener el estado actual del botón graphics
+            
             // Reactivar undo después carga de preset
             isLoadingPreset = false;
             
@@ -1941,7 +1988,34 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                         std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
                         
                         if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
-                            processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+                            auto stateTree = juce::ValueTree::fromXml(*xmlState);
+                            processor.apvts.replaceState(stateTree);
+                            
+                            // Restaurar estado del botón graphics si está presente
+                            auto uiSettings = stateTree.getChildWithName("UISettings");
+                            if (uiSettings.isValid()) {
+                                bool showGraphics = uiSettings.getProperty("displayGraphicsEnvelopes", true);
+                                utilityButtons.runGraphicsButton.setToggleState(showGraphics, juce::dontSendNotification);
+                                processor.displayGraphicsEnvelopes = showGraphics;
+                                
+                                // Actualizar componentes visuales (graphics ON = envelopes VISIBLES)
+                                transferDisplay.setEnvelopeVisible(showGraphics); // Directo, sin inversión
+                                processor.setEnvelopeVisualEnabled(showGraphics);
+                                // Actualizar visibilidad del grMeter considerando SOLO SC
+                                bool soloScActive = sidechainControls.soloScButton.getToggleState();
+                                grMeter.setVisible(showGraphics && !soloScActive);
+                            } else {
+                                // Si no hay UISettings guardado, los Factory presets siempre activan graphics
+                                utilityButtons.runGraphicsButton.setToggleState(true, juce::dontSendNotification);
+                                processor.displayGraphicsEnvelopes = true;
+                                
+                                // Actualizar componentes visuales (graphics ON = envelopes VISIBLES)
+                                transferDisplay.setEnvelopeVisible(true);
+                                processor.setEnvelopeVisualEnabled(true);
+                                // Actualizar visibilidad del grMeter considerando SOLO SC
+                                bool soloScActive = sidechainControls.soloScButton.getToggleState();
+                                grMeter.setVisible(!soloScActive);
+                            }
                             
                             // Queue las actualizaciones de parámetros para botones momentáneos
                             queueParameterUpdate("p_BYPASS", 0.0f);
@@ -1962,7 +2036,26 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                 std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
                 
                 if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
-                    processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+                    auto stateTree = juce::ValueTree::fromXml(*xmlState);
+                    processor.apvts.replaceState(stateTree);
+                    
+                    // Restaurar estado del botón graphics si está presente
+                    auto uiSettings = stateTree.getChildWithName("UISettings");
+                    if (uiSettings.isValid()) {
+                        bool showGraphics = uiSettings.getProperty("displayGraphicsEnvelopes", true);
+                        utilityButtons.runGraphicsButton.setToggleState(showGraphics, juce::dontSendNotification);
+                        processor.displayGraphicsEnvelopes = showGraphics;
+                        
+                        // Actualizar componentes visuales (graphics ON = envelopes VISIBLES)
+                        transferDisplay.setEnvelopeVisible(showGraphics); // Directo, sin inversión
+                        processor.setEnvelopeVisualEnabled(showGraphics);
+                        // Actualizar visibilidad del grMeter considerando SOLO SC
+                        bool soloScActive = sidechainControls.soloScButton.getToggleState();
+                        grMeter.setVisible(showGraphics && !soloScActive);
+                    } else {
+                        // Si no hay UISettings guardado, mantener el estado actual del botón
+                        // No cambiar nada, usar el estado que ya tiene el plugin
+                    }
                     
                     // Queue actualizaciones de parámetros para botones momentáneos
                     queueParameterUpdate("p_BYPASS", 0.0f);
@@ -1993,6 +2086,9 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
         
         // Actualizar sliders desde APVTS
         updateSliderValues();
+        
+        // Actualizar botones desde APVTS
+        updateButtonValues();
         
         // Actualizar la gráfica de transferencia con los valores actuales
         // Es necesario obtener los valores directamente de los parámetros
@@ -2068,10 +2164,10 @@ void JCBCompressorAudioProcessorEditor::setupUtilityButtons()
     
     // El botón de bypass se ha movido a parameterButtons
 
-    // Ejecutar gráficos - caso especial: invertido (OFF con fondo, ON transparente)
+    // Ejecutar gráficos
     utilityButtons.runGraphicsButton.setClickingTogglesState(true);
-    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, DarkTheme::accent.withAlpha(0.3f));  // OFF: con fondo
-    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // ON: transparente
+    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);  // OFF: transparente
+    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonOnColourId, DarkTheme::accent.withAlpha(0.3f));  // ON: con fondo azul
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
     utilityButtons.runGraphicsButton.addListener(this);
@@ -2407,8 +2503,7 @@ void JCBCompressorAudioProcessorEditor::applyDeltaModeToAllControls(bool deltaAc
         scMeterL.setAlpha(0.2f);
         scMeterR.setAlpha(0.2f);
         
-        // Atenuar sliders de trim (efecto visual opcional)
-        trimSlider.setAlpha(0.2f);
+        // Atenuar solo el slider de sidechain trim (el trim principal permanece visible)
         scTrimSlider.setAlpha(0.2f);
         
         // Activar modo delta en display
@@ -2430,7 +2525,6 @@ void JCBCompressorAudioProcessorEditor::applyDeltaModeToAllControls(bool deltaAc
         inputMeterR.setAlpha(1.0f);
         scMeterL.setAlpha(1.0f);
         scMeterR.setAlpha(1.0f);
-        trimSlider.setAlpha(1.0f);
         scTrimSlider.setAlpha(1.0f);
         
         // Desactivar modo delta en display
@@ -2611,6 +2705,63 @@ void JCBCompressorAudioProcessorEditor::updateSliderValues()
         float scTrimValue = param->load();
         scTrimSlider.setValue(scTrimValue, juce::dontSendNotification);
     }
+}
+
+void JCBCompressorAudioProcessorEditor::updateButtonValues()
+{
+    // Actualizar todos los botones desde APVTS
+    // Esta función es necesaria para que los presets carguen correctamente los estados de los botones
+    
+    // Botón SC (Sidechain Filter Enable)
+    if (auto* param = processor.apvts.getRawParameterValue("l_SC")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.scButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón SOLO SC
+    if (auto* param = processor.apvts.getRawParameterValue("m_SOLOSC")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.soloScButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón BYPASS
+    if (auto* param = processor.apvts.getRawParameterValue("p_BYPASS")) {
+        bool toggleState = param->load() >= 0.5f;
+        parameterButtons.bypassButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón KEY (External Key)
+    if (auto* param = processor.apvts.getRawParameterValue("r_KEY")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.keyButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón AUTO RELEASE
+    if (auto* param = processor.apvts.getRawParameterValue("s_AUTORELEASE")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightBottomKnobs.autorelButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón DELTA
+    if (auto* param = processor.apvts.getRawParameterValue("v_DELTA")) {
+        bool toggleState = param->load() >= 0.5f;
+        parameterButtons.deltaButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón HPF Order
+    if (auto* param = processor.apvts.getRawParameterValue("j_HPFORDER")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.hpfOrderButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Botón LPF Order
+    if (auto* param = processor.apvts.getRawParameterValue("k_LPFORDER")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.lpfOrderButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Actualizar estados visuales de los botones
+    updateButtonStates();
 }
 
 void JCBCompressorAudioProcessorEditor::resetGuiSize()
@@ -2819,6 +2970,11 @@ void JCBCompressorAudioProcessorEditor::savePresetFile()
                 // Guardar directamente en el archivo existente
                 auto presetFile = getPresetsFolder().getChildFile(currentPresetName + ".preset");
                 auto state = processor.apvts.copyState();
+                
+                // Añadir estado del botón graphics (no automatizable)
+                auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                uiSettings.setProperty("displayGraphicsEnvelopes", utilityButtons.runGraphicsButton.getToggleState(), nullptr);
+                
                 std::unique_ptr<juce::XmlElement> xml(state.createXml());
                 
                 if (xml != nullptr) {
@@ -2833,13 +2989,12 @@ void JCBCompressorAudioProcessorEditor::savePresetFile()
                     // Actualizar menú si es necesario
                     if (presetArea.presetMenu.getSelectedId() <= 0) {
                         refreshPresetMenu();
-                        for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                            if (presetArea.presetMenu.getItemText(i) == currentPresetName) {
-                                presetArea.presetMenu.setSelectedId(i + 1);
-                                processor.setLastPreset(i + 1);
-                                break;
-                            }
-                        }
+                        // No usar setSelectedId para evitar triggerar onChange
+                        presetArea.presetMenu.setSelectedId(0);
+                        presetArea.presetMenu.setTextWhenNothingSelected(currentPresetName);
+                        presetArea.presetMenu.setTextItalic(false);
+                        processor.setPresetDisplayText(currentPresetName);
+                        processor.setPresetTextItalic(false);
                     }
                 }
                 } else if (result == 2) { // Save As...
@@ -2895,6 +3050,11 @@ void JCBCompressorAudioProcessorEditor::saveAsPresetFile()
                     if (shouldOverwrite) {
                         // Guardar el preset
                         auto state = processor.apvts.copyState();
+                        
+                        // Añadir estado del botón graphics (no automatizable)
+                        auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                        uiSettings.setProperty("displayGraphicsEnvelopes", utilityButtons.runGraphicsButton.getToggleState(), nullptr);
+                        
                         std::unique_ptr<juce::XmlElement> xml(state.createXml());
                         
                         if (xml != nullptr) {
@@ -2903,22 +3063,24 @@ void JCBCompressorAudioProcessorEditor::saveAsPresetFile()
                             // Actualizar el menú
                             refreshPresetMenu();
                             
-                            // Seleccionar el preset recién guardado
-                            for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                                if (presetArea.presetMenu.getItemText(i) == presetName) {
-                                    presetArea.presetMenu.setSelectedId(i + 1);
-                                    processor.setLastPreset(i + 1);
-                                    processor.setPresetDisplayText(presetName);
-                                    processor.setPresetTextItalic(false);
-                                    break;
-                                }
-                            }
+                            // Mostrar el preset recién guardado sin triggerar onChange
+                            presetArea.presetMenu.setSelectedId(0);
+                            presetArea.presetMenu.setTextWhenNothingSelected(presetName);
+                            presetArea.presetMenu.setTextItalic(false);
+                            processor.setPresetDisplayText(presetName);
+                            processor.setPresetTextItalic(false);
+                            processor.setLastPreset(0);
                         }
                     }
                 });
             } else {
                 // Guardar directamente si no existe
                 auto state = processor.apvts.copyState();
+                
+                // Añadir estado del botón graphics (no automatizable)
+                auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                uiSettings.setProperty("displayGraphicsEnvelopes", utilityButtons.runGraphicsButton.getToggleState(), nullptr);
+                
                 std::unique_ptr<juce::XmlElement> xml(state.createXml());
                 
                 if (xml != nullptr) {
@@ -2927,16 +3089,13 @@ void JCBCompressorAudioProcessorEditor::saveAsPresetFile()
                     // Actualizar el menú
                     refreshPresetMenu();
                     
-                    // Seleccionar el preset recién guardado
-                    for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                        if (presetArea.presetMenu.getItemText(i) == presetName) {
-                            presetArea.presetMenu.setSelectedId(i + 1);
-                            processor.setLastPreset(i + 1);
-                            processor.setPresetDisplayText(presetName);
-                            processor.setPresetTextItalic(false);
-                            break;
-                        }
-                    }
+                    // Mostrar el preset recién guardado sin triggerar onChange
+                    presetArea.presetMenu.setSelectedId(0);
+                    presetArea.presetMenu.setTextWhenNothingSelected(presetName);
+                    presetArea.presetMenu.setTextItalic(false);
+                    processor.setPresetDisplayText(presetName);
+                    processor.setPresetTextItalic(false);
+                    processor.setLastPreset(0);
                 }
             }
         }
@@ -3012,26 +3171,38 @@ void JCBCompressorAudioProcessorEditor::deletePresetFile()
 
 void JCBCompressorAudioProcessorEditor::selectNextPreset()
 {
-    int currentId = presetArea.presetMenu.getSelectedId();
-    int numItems = presetArea.presetMenu.getNumItems();
+    // Obtener todos los IDs seleccionables (incluye sub-items de categorías)
+    auto allIds = presetArea.presetMenu.getAllSelectableIds();
+    if (allIds.empty()) return;
     
-    if (numItems > 1) {
-        int nextId = currentId;
-        
-        // Buscar el siguiente preset válido (no separador)
-        do {
-            nextId = (nextId % numItems) + 1;
-            juce::String itemText = presetArea.presetMenu.getItemText(nextId - 1);
-            
-            // Si no es un separador, es un preset válido
-            if (!itemText.startsWith("---")) {
-                break;
-            }
-        } while (nextId != currentId); // Evitar bucle infinito
-        
-        presetArea.presetMenu.setSelectedId(nextId);
-        
-        // Trigger onChange para cargar el preset
+    int currentId = presetArea.presetMenu.getSelectedId();
+    
+    // Si no hay selección actual, seleccionar el primer preset
+    if (currentId == 0) {
+        presetArea.presetMenu.setSelectedId(allIds[0]);
+        if (presetArea.presetMenu.onChange) {
+            presetArea.presetMenu.onChange();
+        }
+        return;
+    }
+    
+    // Buscar el ID actual en la lista de todos los IDs
+    auto it = std::find(allIds.begin(), allIds.end(), currentId);
+    
+    // Si encontramos el ID actual, avanzar al siguiente
+    if (it != allIds.end()) {
+        ++it;
+        // Si llegamos al final, ciclar al principio
+        if (it == allIds.end()) {
+            it = allIds.begin();
+        }
+        presetArea.presetMenu.setSelectedId(*it);
+        if (presetArea.presetMenu.onChange) {
+            presetArea.presetMenu.onChange();
+        }
+    } else {
+        // Si no encontramos el ID actual (puede pasar con presets guardados), seleccionar el primero
+        presetArea.presetMenu.setSelectedId(allIds[0]);
         if (presetArea.presetMenu.onChange) {
             presetArea.presetMenu.onChange();
         }
@@ -3040,28 +3211,39 @@ void JCBCompressorAudioProcessorEditor::selectNextPreset()
 
 void JCBCompressorAudioProcessorEditor::selectPreviousPreset()
 {
-    int currentId = presetArea.presetMenu.getSelectedId();
-    int numItems = presetArea.presetMenu.getNumItems();
+    // Obtener todos los IDs seleccionables (incluye sub-items de categorías)
+    auto allIds = presetArea.presetMenu.getAllSelectableIds();
+    if (allIds.empty()) return;
     
-    if (numItems > 1) {
-        int prevId = currentId;
-        
-        // Buscar el anterior preset válido (no separador)
-        do {
-            prevId = prevId - 1;
-            if (prevId < 1) prevId = numItems;
-            
-            juce::String itemText = presetArea.presetMenu.getItemText(prevId - 1);
-            
-            // Si no es un separador, es un preset válido
-            if (!itemText.startsWith("---")) {
-                break;
-            }
-        } while (prevId != currentId); // Evitar bucle infinito
-        
-        presetArea.presetMenu.setSelectedId(prevId);
-        
-        // Trigger onChange para cargar el preset
+    int currentId = presetArea.presetMenu.getSelectedId();
+    
+    // Si no hay selección actual, seleccionar el último preset
+    if (currentId == 0) {
+        presetArea.presetMenu.setSelectedId(allIds.back());
+        if (presetArea.presetMenu.onChange) {
+            presetArea.presetMenu.onChange();
+        }
+        return;
+    }
+    
+    // Buscar el ID actual en la lista de todos los IDs
+    auto it = std::find(allIds.begin(), allIds.end(), currentId);
+    
+    // Si encontramos el ID actual, retroceder al anterior
+    if (it != allIds.end()) {
+        if (it == allIds.begin()) {
+            // Si estamos al principio, ciclar al final
+            presetArea.presetMenu.setSelectedId(allIds.back());
+        } else {
+            --it;
+            presetArea.presetMenu.setSelectedId(*it);
+        }
+        if (presetArea.presetMenu.onChange) {
+            presetArea.presetMenu.onChange();
+        }
+    } else {
+        // Si no encontramos el ID actual (puede pasar con presets guardados), seleccionar el último
+        presetArea.presetMenu.setSelectedId(allIds.back());
         if (presetArea.presetMenu.onChange) {
             presetArea.presetMenu.onChange();
         }
@@ -3259,21 +3441,21 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "ratio") return JUCE_UTF8("RATIO: cantidad de compresión aplicada\nRelación entrada/salida sobre el threshold\nRango: 1:1 a 20:1 | Por defecto: 4:1");
         if (key == "knee") return JUCE_UTF8("KNEE: suavidad de la transición en el threshold\nCrea una curva gradual en vez de ángulo duro\nRango: 0 a 30 dB | Por defecto: 0 dB");
         if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla final entre señal original y procesada\nControl de balance entrada/salida\nRango: 0 a 100% | Por defecto: 100%");
-        if (key == "lookahead") return JUCE_UTF8("LOOK AHEAD: retardo para evitar overshooting\nReporta latencia al host\nRango: 0 a 10 ms | Por defecto: 0 ms");
+        if (key == "lookahead") return JUCE_UTF8("LOOK AHEAD: retardo para evitar overshooting\nReporta latencia al host (mínimo 1 muestra por Gen~)\nRango: 0 a 10 ms | Por defecto: 0 ms");
         if (key == "clip") return JUCE_UTF8("SOFT CLIP: limitador suave de salida\nPreviene saturación con distorsión armónica\nRango: 0/OFF a 1 | Por defecto: 0/OFF");
         if (key == "again") return JUCE_UTF8("AUTO GAIN: compensación parcial de ganancia\nRecupera ~70% del nivel, funciona junto con makeup\nRango: OFF/ON | Por defecto: OFF");
         if (key == "algo") return JUCE_UTF8("ALGORITHM: tipo de detector interpolado\nSliding: rápido y preciso | EXPO RMS: clásico | Slow RMS: suave\nRango continuo entre 0-2 | Por defecto: 1 (EXPO RMS)");
-        if (key == "react") return JUCE_UTF8("REACT: respuesta del detector a transientes.\nValores bajos: suave | Valores altos: agresivo.\nRango: 0 a 100% | Por defecto: 0%");
+        if (key == "react") return JUCE_UTF8("REACT: respuesta del detector a transientes.\nValores bajos: agresivo | Valores altos: suave.\nRango: 0 a 100% | Por defecto: 0%");
         if (key == "attack") return JUCE_UTF8("ATTACK: tiempo para alcanzar máxima compresión\nVelocidad de respuesta del compresor\nRango: 0.1 a 100 ms | Por defecto: 5 ms");
         if (key == "release") return JUCE_UTF8("RELEASE: tiempo para volver sin compresión\nPermite valores extremos que distorsionan\nRango: 0.1 a 1000 ms | Por defecto: 30 ms");
         if (key == "autorel") return JUCE_UTF8("AUTO RELEASE: ajuste dinámico del release\nAdapta el tiempo según material de audio entrante\nRango: OFF/ON | Por defecto: OFF");
         if (key == "speed") return JUCE_UTF8("AR: activar auto release speed\nOFF = desactivado, ON = activado\nRango: OFF/ON | Por defecto: OFF");
         if (key == "delta") return JUCE_UTF8("DELTA: escucha la reducción aplicada\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "parallel") return JUCE_UTF8("PARALLEL: suma señal sin comprimir\nCompresión paralela real sin pérdida de nivel\nRango: -inf a 0 dB | Por defecto: -inf dB");
+        if (key == "parallel") return JUCE_UTF8("PARALLEL: suma señal sin comprimir\nCompresión paralela real PRE softclip sin pérdida de nivel\nRango: -inf a 0 dB | Por defecto: -inf dB");
         if (key == "trim") return JUCE_UTF8("TRIM INPUT: ganancia de entrada al compresor\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de compensación manual\nFunciona junto al Auto Gain\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "sc") return JUCE_UTF8("SC: activa los filtros del sidechain interno.\nPermite filtrar la señal, tanto interna como externa, que controla el compresor.\nValor por defecto: OFF");
-        if (key == "extkey") return JUCE_UTF8("EXTERNAL KEY: activa sidechain externo\nUsa entrada auxiliar para controlar compresión\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "extkey") return JUCE_UTF8("SIDECHAIN: conmuta entre interno y externo\nUsa entrada auxiliar del plugin para controlar compresión\nRango: INT/EXT | Por defecto: INT");
         if (key == "solosc") return JUCE_UTF8("SOLO SC: escucha filtros sidechain int/ext\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
         if (key == "hpf") return JUCE_UTF8("HPF: filtro pasa altos del sidechain\nFiltra frecuencias del detector de compresión\nRango: 20 a 20k Hz | Por defecto: 20 Hz");
         if (key == "lpf") return JUCE_UTF8("LPF: filtro pasa bajos del sidechain\nElimina frecuencias agudas del detector\nRango: 20 Hz a 20 kHz | Por defecto: 20 kHz");
@@ -3304,20 +3486,20 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "ratio") return "RATIO: amount of compression applied\nInput/output relationship above threshold\nRange: 1:1 to 20:1 | Default: 4:1";
         if (key == "knee") return "KNEE: smoothness of the threshold transition\nCreates a gradual curve instead of hard angle\nRange: 0 to 30 dB | Default: 0 dB";
         if (key == "drywet") return "DRY/WET: final mix between original and processed signal\nInput/output balance control\nRange: 0 to 100% | Default: 100%";
-        if (key == "lookahead") return "LOOK AHEAD: delay to prevent overshooting\nReports latency to host\nRange: 0 to 10 ms | Default: 0 ms";
+        if (key == "lookahead") return "LOOK AHEAD: delay to prevent overshooting\nReports latency to host (minimum 1 sample due to Gen~)\nRange: 0 to 10 ms | Default: 0 ms";
         if (key == "clip") return "SOFT CLIP: soft output limiter\nPrevents clipping with harmonic distortion\nRange: 0/OFF to 1 | Default: 0/OFF";
         if (key == "again") return "AUTO GAIN: partial gain compensation\nRecovers ~70% of level, works together with makeup\nRange: OFF/ON | Default: OFF";
-        if (key == "react") return "REACT: detector response to transients.\nLow values: smooth | High values: aggressive.\nRange: 0 to 100% | Default: 0%";
+        if (key == "react") return "REACT: detector response to transients.\nLow values: aggressive | High values: smooth.\nRange: 0 to 100% | Default: 0%";
         if (key == "attack") return "ATTACK: time to reach maximum compression\nCompressor response speed\nRange: 0.1 to 100 ms | Default: 5 ms";
         if (key == "release") return "RELEASE: time to return uncompressed\nAllows extreme values for creative distortion\nRange: 0.1 to 1000 ms | Default: 30 ms";
         if (key == "autorel") return "AUTO RELEASE: dynamic release adjustment\nAdapts timing based on incoming audio material\nRange: OFF/ON | Default: OFF";
         if (key == "speed") return "AR: activate auto release speed\nOFF = disabled, ON = enabled\nRange: OFF/ON | Default: OFF";
         if (key == "delta") return "DELTA: listen to applied reduction\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
-        if (key == "parallel") return "PARALLEL: adds uncompressed signal\nTrue parallel compression without level loss\nRange: -inf to 0 dB | Default: -inf dB";
+        if (key == "parallel") return "PARALLEL: adds uncompressed signal\nTrue parallel compression PRE softclip without level loss\nRange: -inf to 0 dB | Default: -inf dB";
         if (key == "trim") return "TRIM INPUT: compressor input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "makeup") return "MAKEUP: manual compensation gain\nWorks together with Auto Gain\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "sc") return "SC: activates internal sidechain filters.\nAllows filtering the signal, both internal and external, that controls the compressor.\nDefault: OFF";
-        if (key == "extkey") return "EXTERNAL KEY: enables external sidechain\nUses auxiliary input to control compression\nRange: OFF/ON | Default: OFF";
+        if (key == "extkey") return "SIDECHAIN: toggles between internal and external\nUses plugin auxiliary input to control compression\nRange: INT/EXT | Default: INT";
         if (key == "solosc") return "SOLO SC: listen to int/ext sidechain filters\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
         if (key == "hpf") return "HPF: sidechain high-pass filter\nFilters frequencies from compression detector\nRange: 20 to 20k Hz | Default: 20 Hz";
         if (key == "lpf") return "LPF: sidechain low-pass filter.\nRemoves treble frequencies from detector.\nRange: 20 Hz to 20 kHz | Default: 20 kHz";

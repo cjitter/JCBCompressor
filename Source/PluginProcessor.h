@@ -117,6 +117,9 @@ public:
     bool getTooltipLanguageEnglish() const noexcept { return tooltipLanguageEnglish; }
     void setTooltipLanguageEnglish(bool english) noexcept { tooltipLanguageEnglish = english; }
     
+    // Estado del botón graphics (no automatizable, guardado en presets)
+    bool displayGraphicsEnvelopes{true};
+    
     // Métodos de comparación A/B
     void saveCurrentStateToActive();
     void toggleAB();

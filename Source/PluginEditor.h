@@ -824,6 +824,7 @@ private:
     void exitDeltaMode();
     void updateMeters();
     void updateSliderValues();
+    void updateButtonValues();
     
     //==========================================================================
     // MÉTODOS HELPER DE UI

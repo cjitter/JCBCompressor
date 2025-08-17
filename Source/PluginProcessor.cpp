@@ -1364,6 +1364,7 @@ void JCBCompressorAudioProcessor::getStateInformation(juce::MemoryBlock& destDat
     preset.setProperty("presetTextItalic", presetTextItalic, nullptr);
     preset.setProperty("envelopeVisualEnabled", envelopeVisualEnabled, nullptr);
     preset.setProperty("tooltipLanguageEnglish", tooltipLanguageEnglish, nullptr);
+    preset.setProperty("displayGraphicsEnvelopes", displayGraphicsEnvelopes, nullptr);
     
     // Guardar tamaño del editor
     preset.setProperty("editorWidth", editorSize.x, nullptr);
@@ -1414,6 +1415,7 @@ void JCBCompressorAudioProcessor::setStateInformation(const void* data, int size
             presetTextItalic = preset.getProperty("presetTextItalic", false);
             envelopeVisualEnabled = preset.getProperty("envelopeVisualEnabled", true);
             tooltipLanguageEnglish = preset.getProperty("tooltipLanguageEnglish", false);
+            displayGraphicsEnvelopes = preset.getProperty("displayGraphicsEnvelopes", true);
             
             // Restaurar tamaño del editor
             int savedWidth = preset.getProperty("editorWidth", 1250);
