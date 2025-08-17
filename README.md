@@ -89,6 +89,7 @@ cmake --build build-release   # Para Release
   - WET 100% ⇒ solo se escucha el delta de compresión.
   - Lookahead 0 ms ⇒ latencia real de 1 muestra (compensada).
   - Lookahead 10 ms @ 48 kHz ⇒ 480 muestras exactas, commit en fase.
+- **Thread safety mejorada**: Eliminadas todas las assertions de pluginval (strictness level 10) mediante sistema de atómicos y Timer para actualizaciones UI thread-safe. Verificado funcionamiento estable con automatización en múltiples DAWs.
 
 Estas mejoras consolidan la estabilidad y preparan la transición hacia la versión **1.0.0 alpha**.
 
