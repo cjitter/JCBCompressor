@@ -14,8 +14,8 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 // Librerías estándar C++
-#include <unordered_map>
 #include <map>
+#include <atomic>
 
 // Archivos del proyecto
 #include "PluginProcessor.h"
@@ -69,6 +69,7 @@ public:
     bool getIsLoadingPreset() const noexcept { return isLoadingPreset; }
     JCBCompressorAudioProcessor& getProcessor() const noexcept { return processor; }
     
+    
 private:
     //==========================================================================
     // REFERENCIAS PRINCIPALES
@@ -108,11 +109,6 @@ private:
     // Sistema de idiomas para tooltips
     enum class TooltipLanguage { Spanish, English };
     
-    // Sistema de actualización diferida de parámetros para thread safety con AAX
-    struct DeferredParameterUpdate {
-        juce::String paramID;
-        float normalizedValue;
-    };
     
     //==========================================================================
     // CLASES LOOK AND FEEL
@@ -141,29 +137,26 @@ private:
     {
         TransferFunctionParameterListener(JCBCompressorAudioProcessorEditor* e) : editor(e) {}
         
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        void parameterChanged(const juce::String& parameterID, float newValue) override
         {
-            if (parameterID == "b_THD" || parameterID == "c_RATIO" || parameterID == "h_KNEE")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBCompressorAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateTransferDisplay();
-                });
+            // NO llamar callAsync desde aquí - puede ejecutarse en audio thread
+            // Solo guardar valores en atómicos para procesamiento posterior en Timer
+            
+            if (parameterID == "b_THD") {
+                editor->pendingThresholdValue.store(newValue);
+                editor->hasUIUpdates.store(true);
             }
-            else if (parameterID == "s_AUTORELEASE")
-            {
-                // Actualizar texto del botón AR y alpha del slider REL cuando el parámetro cambia por automatización o carga de preset
-                juce::Component::SafePointer<JCBCompressorAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor) {
-                        safeEditor->updateARButtonText();
-                        safeEditor->updateRelSliderAlpha();
-                    }
-                });
+            else if (parameterID == "c_RATIO") {
+                editor->pendingRatioValue.store(newValue);
+                editor->hasUIUpdates.store(true);
+            }
+            else if (parameterID == "h_KNEE") {
+                editor->pendingKneeValue.store(newValue);
+                editor->hasUIUpdates.store(true);
+            }
+            else if (parameterID == "s_AUTORELEASE") {
+                editor->pendingAutoReleaseValue.store(newValue);
+                editor->hasUIUpdates.store(true);
             }
         }
         
@@ -181,16 +174,9 @@ private:
         {
             if (parameterID == "v_DELTA")
             {
-                // Thread-safe UI update
-                juce::Component::SafePointer<JCBCompressorAudioProcessorEditor> safeEditor(editor);
-                juce::MessageManager::callAsync([safeEditor, newValue]()
-                {
-                    if (safeEditor != nullptr)
-                    {
-                        bool deltaActive = newValue > 0.5f;
-                        safeEditor->applyDeltaModeToAllControls(deltaActive);
-                    }
-                });
+                // NO llamar callAsync - solo guardar en atómico
+                editor->pendingDeltaValue.store(newValue);
+                editor->hasUIUpdates.store(true);
             }
         }
     };
@@ -884,8 +870,6 @@ private:
     //==========================================================================
     // THREAD SAFETY Y AUTOMATIZACIÓN
     //==========================================================================
-    void queueParameterUpdate(const juce::String& paramID, float normalizedValue);
-    void processPendingParameterUpdates();
     
     //==========================================================================
     // VARIABLES DE STATE
@@ -897,7 +881,6 @@ private:
     
     // Banderas de estado principales
     bool isLoadingPreset = false;
-    bool isProcessingQueue = false;  // Flag para prevenir deshacer durante procesamiento de cola
     
     // Mapeo de IDs de menú a nombres de presets para sistema jerárquico
     std::map<int, juce::String> presetIdToNameMap;
@@ -916,11 +899,16 @@ private:
     // Timing y debouncing
     juce::uint32 lastDiagramButtonTime = 0;
     
-    // Variables de thread safety
+    // Variables de thread safety simplificadas
     std::atomic<int> automationUpdateCount{0};
-    std::vector<DeferredParameterUpdate> pendingParameterUpdates;
-    std::atomic<bool> hasPendingParameterUpdates{false};
-    mutable std::mutex parameterUpdateMutex;
+    
+    // Atómicos para valores pendientes de actualización UI (RT-safe)
+    std::atomic<float> pendingThresholdValue{-1.0f};
+    std::atomic<float> pendingRatioValue{-1.0f};
+    std::atomic<float> pendingKneeValue{-1.0f};
+    std::atomic<float> pendingAutoReleaseValue{-1.0f};
+    std::atomic<float> pendingDeltaValue{-1.0f};
+    std::atomic<bool> hasUIUpdates{false};
     
     // Sistema universal de decay para todos los DAWs
     void applyMeterDecayIfNeeded();

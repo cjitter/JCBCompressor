@@ -233,10 +233,51 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
 
 JCBCompressorAudioProcessorEditor::~JCBCompressorAudioProcessorEditor()
 {
-    // CRÍTICO: Detener timer PRIMERO para prevenir crashes durante destrucción
+    // 1. Detener timer PRIMERO
     stopTimer();
     
-    // Eliminar parameter listeners
+    // 2. Reset attachments en orden inverso al de construcción
+    // Botones de parámetros
+    parameterButtons.deltaAttachment.reset();
+    parameterButtons.bypassAttachment.reset();
+    
+    // Sidechain controls
+    sidechainControls.lpfOrderAttachment.reset();
+    sidechainControls.hpfOrderAttachment.reset();
+    sidechainControls.soloScAttachment.reset();
+    sidechainControls.keyAttachment.reset();
+    sidechainControls.scAttachment.reset();
+    sidechainControls.lpfAttachment.reset();
+    sidechainControls.hpfAttachment.reset();
+    
+    // Right bottom knobs (time controls)
+    rightBottomKnobs.autorelAttachment.reset();
+    rightBottomKnobs.relAttachment.reset();
+    rightBottomKnobs.atkAttachment.reset();
+    
+    // Right top controls (detector controls)
+    rightTopControls.smoothAttachment.reset();
+    rightTopControls.reactAttachment.reset();
+    rightTopControls.algoAttachment.reset();
+    
+    // Left bottom knobs
+    leftBottomKnobs.parallAttachment.reset();
+    leftBottomKnobs.clipAttachment.reset();
+    leftBottomKnobs.lookaheadAttachment.reset();
+    leftBottomKnobs.drywetAttachment.reset();
+    
+    // Top knobs
+    leftTopKnobs.againAttachment.reset();
+    leftTopKnobs.kneeAttachment.reset();
+    leftTopKnobs.ratioAttachment.reset();
+    leftTopKnobs.thdAttachment.reset();
+    
+    // Main controls
+    scTrimAttachment.reset();
+    makeupAttachment.reset();
+    trimAttachment.reset();
+    
+    // 3. Eliminar parameter listeners
     if (transferFunctionListener)
     {
         processor.apvts.removeParameterListener("b_THD", transferFunctionListener.get());
@@ -250,6 +291,7 @@ JCBCompressorAudioProcessorEditor::~JCBCompressorAudioProcessorEditor()
         processor.apvts.removeParameterListener("v_DELTA", deltaParameterListener.get());
     }
     
+    // 4. LookAndFeel
     setLookAndFeel(nullptr);
 }
 
@@ -513,6 +555,35 @@ void JCBCompressorAudioProcessorEditor::resized()
 
 void JCBCompressorAudioProcessorEditor::timerCallback()
 {
+    // Procesar actualizaciones de UI pendientes desde atómicos (thread-safe)
+    if (hasUIUpdates.load())
+    {
+        hasUIUpdates.store(false);
+        
+        // Procesar cambios de TransferFunction
+        float thresholdValue = pendingThresholdValue.exchange(-1.0f);
+        float ratioValue = pendingRatioValue.exchange(-1.0f);
+        float kneeValue = pendingKneeValue.exchange(-1.0f);
+        
+        if (thresholdValue >= 0.0f || ratioValue >= 0.0f || kneeValue >= 0.0f) {
+            updateTransferDisplay();
+        }
+        
+        // Procesar cambio de AutoRelease
+        float autoReleaseValue = pendingAutoReleaseValue.exchange(-1.0f);
+        if (autoReleaseValue >= 0.0f) {
+            updateARButtonText();
+            updateRelSliderAlpha();
+        }
+        
+        // Procesar cambio de Delta
+        float deltaValue = pendingDeltaValue.exchange(-1.0f);
+        if (deltaValue >= 0.0f) {
+            bool deltaActive = deltaValue > 0.5f;
+            applyDeltaModeToAllControls(deltaActive);
+        }
+    }
+    
     // Sistema universal de decay para todos los DAWs
     applyMeterDecayIfNeeded();
     
@@ -1953,7 +2024,8 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
             // IMPORTANTE: Forzar la sincronización directa de Gen~ para asegurar valores correctos de los parámetros
             // Esto replica la misma sincronización realizada durante la instanciación del plugin
             for (int i = 0; i < JCBCompressor::num_params(); i++) {
-                auto paramName = juce::String(JCBCompressor::getparametername(processor.getPluginState(), i));
+                const char* name = JCBCompressor::getparametername(processor.getPluginState(), i);
+                auto paramName = juce::String(name ? name : "");
                 if (auto* param = processor.apvts.getRawParameterValue(paramName)) {
                     float value = param->load();
                     
@@ -2018,9 +2090,7 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                             }
                             
                             // Queue las actualizaciones de parámetros para botones momentáneos
-                            queueParameterUpdate("p_BYPASS", 0.0f);
-                            queueParameterUpdate("m_SOLOSC", 0.0f);
-                            queueParameterUpdate("v_DELTA", 0.0f);
+                            // Los parámetros ya se actualizan directamente desde los valores cargados
                         }
                     }
                     break;
@@ -2058,9 +2128,7 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                     }
                     
                     // Queue actualizaciones de parámetros para botones momentáneos
-                    queueParameterUpdate("p_BYPASS", 0.0f);
-                    queueParameterUpdate("m_SOLOSC", 0.0f);
-                    queueParameterUpdate("v_DELTA", 0.0f);
+                    // Los parámetros ya se actualizan directamente desde los valores cargados
                 }
             }
         }
@@ -2508,7 +2576,8 @@ void JCBCompressorAudioProcessorEditor::applyDeltaModeToAllControls(bool deltaAc
         
         // Activar modo delta en display
         transferDisplay.setDeltaMode(true);
-        transferDisplay.setEnvelopeVisible(false);
+        // Mantener envelope visible para que se sigan actualizando los datos
+        transferDisplay.setEnvelopeVisible(true);
     }
     else {
         // Restaurar todo a normal
@@ -3567,91 +3636,6 @@ void JCBCompressorAudioProcessorEditor::applyAlphaToMainControls(float alpha)
 
 
 
-//==============================================================================
-// THREAD SAFETY Y AUTOMATIZACIÓN
-//==============================================================================
-void JCBCompressorAudioProcessorEditor::queueParameterUpdate(const juce::String& paramID, float normalizedValue)
-{
-    {
-        std::lock_guard<std::mutex> lock(parameterUpdateMutex);
-        
-        // Check if this parameter is already queued
-        auto it = std::find_if(pendingParameterUpdates.begin(), pendingParameterUpdates.end(),
-                               [&paramID](const DeferredParameterUpdate& update) {
-                                   return update.paramID == paramID;
-                               });
-        
-        if (it != pendingParameterUpdates.end()) {
-            // Actualizar entrada existente
-            it->normalizedValue = normalizedValue;
-        } else {
-            // Add new entry
-            pendingParameterUpdates.push_back({paramID, normalizedValue});
-        }
-    }
-    
-    hasPendingParameterUpdates.store(true);
-}
-
-void JCBCompressorAudioProcessorEditor::processPendingParameterUpdates()
-{
-    if (!hasPendingParameterUpdates.exchange(false)) {
-        return;
-    }
-    
-    std::vector<DeferredParameterUpdate> updates;
-    {
-        std::lock_guard<std::mutex> lock(parameterUpdateMutex);
-        updates = std::move(pendingParameterUpdates);
-        pendingParameterUpdates.clear();
-    }
-    
-    // Establecer flag para prevenir transacciones de undo durante procesamiento de queue
-    isProcessingQueue = true;
-    
-    // Process all updates on the message thread
-    for (const auto& update : updates) {
-        if (auto* param = processor.apvts.getParameter(update.paramID)) {
-            // Usar beginChangeGesture/endChangeGesture para prevenir transacciones de undo
-            param->beginChangeGesture();
-            param->setValueNotifyingHost(update.normalizedValue);
-            param->endChangeGesture();
-            
-            // CRÍTICO: Sincronización directa con Gen~ DSP
-            // Esto asegura que los valores del DEFAULT button lleguen al DSP
-            // Convertir valor normalizado a valor real usando el rango del parámetro
-            auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param);
-            if (floatParam) {
-                float realValue = floatParam->getNormalisableRange().convertFrom0to1(update.normalizedValue);
-                
-                if (update.paramID == "d_ATK" || update.paramID == "e_REL") {
-                    // Debug info for DEFAULT preset parameter updates
-                }
-                
-                // Llamar al método parameterChanged del processor para sincronizar con Gen~
-                processor.parameterChanged(update.paramID, realValue);
-            }
-            
-            // Manejo de AudioParameterBool para sincronización con Gen~
-            auto* boolParam = dynamic_cast<juce::AudioParameterBool*>(param);
-            if (boolParam) {
-                float realValue = update.normalizedValue >= 0.5f ? 1.0f : 0.0f;
-
-                if (update.paramID == "s_AUTORELEASE") {
-                    // Debug info for DEFAULT preset bool parameter updates
-                }
-                
-                // Llamar al método parameterChanged del processor para sincronizar con Gen~
-                processor.parameterChanged(update.paramID, realValue);
-            }
-        }
-    }
-    
-    // Visual feedback (cambios de alpha) se maneja en timerCallback() para updates consistentes
-    
-    // Limpiar flag después del procesamiento
-    isProcessingQueue = false;
-}
 
 //==============================================================================
 // DIAGRAM Y CODE WINDOW
@@ -3782,6 +3766,9 @@ juce::String JCBCompressorAudioProcessorEditor::getBasicBlockDescription(const j
 // Función helper para obtener índice de parámetro por ID (robusta, compatible con el futuro)
 int JCBCompressorAudioProcessorEditor::getParameterIndexByID(const juce::String& parameterID)
 {
+    if (parameterID.isEmpty())  // Comprobación extra para evitar pasar string vacío al loop
+        return -1;
+
     auto& params = processor.getParameters();
     for (int i = 0; i < params.size(); ++i) {
         if (auto* param = dynamic_cast<juce::AudioProcessorParameterWithID*>(params[i])) {
@@ -3790,6 +3777,7 @@ int JCBCompressorAudioProcessorEditor::getParameterIndexByID(const juce::String&
             }
         }
     }
+    // Retorna el índice del parámetro o -1 si no se encuentra
     return -1; // Parámetro no encontrado
 }
 

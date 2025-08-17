@@ -149,7 +149,16 @@ private:
             {
                 if (!comp->isCurrentlyBlockedByAnotherModalComponent())
                 {
-                    showTip(client->getTooltip());
+                    // Proteger contra nullptr en getTooltip()
+                    auto tip = client->getTooltip();
+                    if (tip.isNotEmpty())
+                    {
+                        showTip(tip);
+                    }
+                    else
+                    {
+                        clearTip();
+                    }
                     return;
                 }
             }

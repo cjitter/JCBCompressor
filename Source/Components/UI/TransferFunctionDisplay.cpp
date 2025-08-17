@@ -52,7 +52,7 @@ void TransferFunctionDisplay::paint(juce::Graphics& g)
     
     // Dibujar elementos del gráfico
     drawGrid(g, graphBounds);
-    if (envelopeVisible && !soloSidechainActive && !bypassMode) {
+    if ((envelopeVisible || deltaMode) && !soloSidechainActive && !bypassMode) {
         if (deltaMode) {
             // En modo DELTA solo mostrar gain reduction
             drawGainReductionHistory(g, graphBounds);  // Historia de reducción de ganancia
@@ -153,7 +153,8 @@ juce::String TransferFunctionDisplay::getTooltip()
 {
     // El tooltip se establece desde PluginEditor usando setHelpText()
     // Este método debe retornar el helpText establecido por el componente padre
-    return getHelpText();
+    auto helpText = getHelpText();
+    return helpText.isEmpty() ? juce::String() : helpText;
 }
 
 void TransferFunctionDisplay::setLogicStoppedState(bool stopped)

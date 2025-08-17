@@ -45,7 +45,8 @@ JCBCompressorAudioProcessor::JCBCompressorAudioProcessor()
     // Vincular listeners de parámetros de gen~ a APVTS
     for (int i = 0; i < JCBCompressor::num_params(); i++)
     {
-        auto name = juce::String(JCBCompressor::getparametername(m_PluginState, i));
+        const char* rawName = JCBCompressor::getparametername(m_PluginState, i);
+        auto name = juce::String(rawName ? rawName : "");
         apvts.addParameterListener(name, this);
     }
     
@@ -53,7 +54,8 @@ JCBCompressorAudioProcessor::JCBCompressorAudioProcessor()
     // Esto asegura que Gen~ tenga los valores correctos desde el principio
     for (int i = 0; i < JCBCompressor::num_params(); i++)
     {
-        auto paramName = juce::String(JCBCompressor::getparametername(m_PluginState, i));
+        const char* rawName = JCBCompressor::getparametername(m_PluginState, i);
+        auto paramName = juce::String(rawName ? rawName : "");
         if (auto* param = apvts.getRawParameterValue(paramName)) {
             float value = param->load();
             
@@ -106,7 +108,8 @@ JCBCompressorAudioProcessor::~JCBCompressorAudioProcessor()
     // Destruir listeners de parámetros del apvts
     for (int i = 0; i < JCBCompressor::num_params(); i++)
     {
-        auto name = juce::String(JCBCompressor::getparametername(m_PluginState, i));
+        const char* rawName = JCBCompressor::getparametername(m_PluginState, i);
+        auto name = juce::String(rawName ? rawName : "");
         apvts.removeParameterListener(name, this);
     }
     
@@ -238,7 +241,8 @@ void JCBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samplesP
     // 4) Reinyecta TODOS los parámetros a Gen DESPUÉS del reset (tú ya lo hacías)
     for (int i = 0; i < JCBCompressor::num_params(); ++i)
     {
-        auto paramName = juce::String (JCBCompressor::getparametername (m_PluginState, i));
+        const char* rawName = JCBCompressor::getparametername(m_PluginState, i);
+        auto paramName = juce::String(rawName ? rawName : "");
         if (auto* p = apvts.getRawParameterValue (paramName))
             JCBCompressor::setparameter (m_PluginState, i, p->load(), nullptr);
     }
@@ -1127,6 +1131,9 @@ void JCBCompressorAudioProcessor::parameterChanged(const juce::String& parameter
             setLatencySamples(laSamples);
         }
     }
+    
+    // NO llamar MessageManager::callAsync desde aquí - puede ejecutarse en audio thread
+    // La actualización de UI se maneja desde el Timer del editor
 }
 
 //==============================================================================
@@ -1451,7 +1458,8 @@ void JCBCompressorAudioProcessor::setStateInformation(const void* data, int size
         
         // IMPORTANTE: Sincronizar todos los parámetros con Gen~ después de cargar el estado
         for (int i = 0; i < JCBCompressor::num_params(); i++) {
-            auto paramName = juce::String(JCBCompressor::getparametername(m_PluginState, i));
+            const char* rawName = JCBCompressor::getparametername(m_PluginState, i);
+            auto paramName = juce::String(rawName ? rawName : "");
             if (auto* param = apvts.getRawParameterValue(paramName)) {
                 float value = param->load();
                 
@@ -1590,7 +1598,8 @@ const juce::String JCBCompressorAudioProcessor::getParameterName(int index)
     // Verificar si el índice está dentro del rango de Gen~
     if (index < JCBCompressor::num_params())
     {
-        return juce::String(JCBCompressor::getparametername(m_PluginState, index));
+        const char* rawName = JCBCompressor::getparametername(m_PluginState, index);
+        return juce::String(rawName ? rawName : "");
     }
     else
     {
@@ -1612,7 +1621,8 @@ const juce::String JCBCompressorAudioProcessor::getParameterText(int index)
     {
         juce::String text = juce::String(getParameter(index));
         text += juce::String(" ");
-        text += juce::String(JCBCompressor::getparameterunits(m_PluginState, index));
+        const char* units = JCBCompressor::getparameterunits(m_PluginState, index);
+        text += juce::String(units ? units : "");
         return text;
     }
     

@@ -21,6 +21,12 @@ cmake_minimum_required(VERSION 3.20)
 
 project(JCBCompressor VERSION 0.9.993)
 
+# Fuerza símbolos de depuración en Debug (cualquier generador: Ninja, Make, etc.)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+
+# Solo aplica si usas Xcode (para tener dSYM). En Ninja/Make no hace nada.
+set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+
 # Configuración C++
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
