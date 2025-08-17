@@ -81,15 +81,16 @@ cmake --build build-release   # Para Release
 
 ## Novedades v0.9.993 (última beta antes de la alpha 1.0.0)
 
-- **Corrección de gestión de latencia y sample rate**: ahora el plugin sincroniza correctamente el SR/VS internos de Gen~ mediante `reset()` en `prepareToPlay`, garantizando que los cálculos de lookahead coincidan con los reportados al host.
-- **Latencia consistente en todos los hosts**: se reporta +1 muestra de retardo mínimo (por el retardo intrínseco de Gen~), y se calcula exactamente `ms * SR/1000` para el lookahead. Verificado en Pro Tools con null tests.
-- **Softclip refinado**: aplicado únicamente en la rama WET (y bypassado en modo Delta), evitando residuos o filtrados no deseados en modo DRY.
+- **Corrección de gestión de latencia y sample rate**: ahora el plugin sincroniza correctamente el SR/VS internos de **Gen~** mediante `reset()` en `prepareToPlay`, garantizando que los cálculos de lookahead coincidan con los reportados al host.
+- **Latencia consistente en todos los hosts**: se reporta +1 muestra de retardo mínimo (por el retardo intrínseco de Gen~), y se calcula exactamente `ms * SR / 1000` para el lookahead. Verificado en *Pro Tools* con null tests.
+- **Softclip refinado**: aplicado únicamente en la rama **WET** (y bypassado en modo *Delta*), evitando residuos o filtrados no deseados en modo **DRY**.
 - **Null tests verificados**:
   - DRY 100% ⇒ cancelación perfecta.
   - WET 100% ⇒ solo se escucha el delta de compresión.
   - Lookahead 0 ms ⇒ latencia real de 1 muestra (compensada).
   - Lookahead 10 ms @ 48 kHz ⇒ 480 muestras exactas, commit en fase.
-- **Thread safety mejorada**: Eliminadas todas las assertions de pluginval (strictness level 10) mediante sistema de atómicos y Timer para actualizaciones UI thread-safe. Verificado funcionamiento estable con automatización en múltiples DAWs.
+- **Thread safety mejorada**: eliminadas todas las *assertions* de **pluginval** (strictness level 10) mediante sistema de atómicos y `Timer` para actualizaciones UI thread-safe. Verificado funcionamiento estable con automatización en múltiples DAWs.
+- v0.9.993 validada con éxito en **AUVAL**, **pluginval**, **VST3 validator** y **AAX validator**.
 
 Estas mejoras consolidan la estabilidad y preparan la transición hacia la versión **1.0.0 alpha**.
 
