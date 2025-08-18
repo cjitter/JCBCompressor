@@ -24,7 +24,7 @@ softkneeLinear(xg, T, R, W) {
 
 // PARÁMETROS
 Param b_THD(-12, min=-60, default=-12, max=0);        // Threshold (dB)
-Param c_RATIO(4, min=1, default=4, max=10);           // Compression ratio
+Param c_RATIO(4, min=1, default=4, max=20);           // Compression ratio
 Param h_KNEE(0, min=0, default=0, max=30);            // Knee width (dB)
 
 // HISTORIAS para smoothing

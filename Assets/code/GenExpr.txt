@@ -166,7 +166,6 @@ SMOOTH_HISTORY_FACTOR = 0.999;         // Factor de suavizado para valores hist�
 SMOOTH_PARAM_FACTOR = 0.001;           // Factor de suavizado para nuevos parámetros (0.1%)
 AUTO_MAKEUP_FACTOR = -0.7;             // Factor de compensación automática de ganancia
 LOOKAHEAD_DELAY_SAMPLES = 0.025*samplerate; // Muestras de delay para lookahead
-LOOKAHEAD_SMOOTH_FACTOR = 0.9999;      // Factor ultra lento para lookahead
 
 // PROCESAMIENTO PRINCIPAL
 
@@ -256,8 +255,8 @@ scEnableHistoryNext = fixdenorm(smoothScEnable);
 smoothSoftclip = (softclipHistory * SMOOTH_HISTORY_FACTOR) + (u_SOFTCLIP * SMOOTH_PARAM_FACTOR);
 softclipHistoryNext = fixdenorm(smoothSoftclip);
 
-// Lookahead Smoothing (ULTRA LENTO)
-smoothLookahead = (lookaheadHistory * LOOKAHEAD_SMOOTH_FACTOR) + (n_LOOKAHEAD * (1 - LOOKAHEAD_SMOOTH_FACTOR));
+// Lookahead: mismo smoothing que el resto (0.001/0.999)
+smoothLookahead = (lookaheadHistory * SMOOTH_HISTORY_FACTOR) + (n_LOOKAHEAD * SMOOTH_PARAM_FACTOR);
 lookaheadHistoryNext = fixdenorm(smoothLookahead);
 
 // =============================================================================
@@ -274,11 +273,12 @@ lookaheadSamples = mstosamps(smoothLookahead);
 leftDelayedForCompression = leftOutputDelay.read(lookaheadSamples, interp="step");
 rightDelayedForCompression = rightOutputDelay.read(lookaheadSamples, interp="step");
 
-// Procesar entradas y leer señales retrasadas para mezcla final
-leftInputDelay.write(in1);                    // Escribir entrada actual
-leftDelayedForMixing = leftInputDelay.read(lookaheadSamples, interp="step");
+// Asignar salidas de medidores principales (señales que entran a la compresión)
+out4 = leftDelayedForCompression;
+out5 = rightDelayedForCompression;
 
-rightInputDelay.write(in2);                   // Escribir entrada actual
+// Leer señales retrasadas para mezcla final (las escrituras se hacen más abajo después del trim)
+leftDelayedForMixing = leftInputDelay.read(lookaheadSamples, interp="step");
 rightDelayedForMixing = rightInputDelay.read(lookaheadSamples, interp="step");
 
 // =============================================================================
@@ -325,19 +325,20 @@ effectiveDryWetMix = mix(smoothDryWetMix, deltaWetValue, smoothDeltaMode);
 // =============================================================================
 // INPUT PROCESSING - Procesamiento de entradas con trim
 // =============================================================================
-
 // Trim Principal - Ganancia de entrada
 smoothTrimGain = (trimHistory * SMOOTH_HISTORY_FACTOR) + (a_TRIM * SMOOTH_PARAM_FACTOR);
 trimHistoryNext = fixdenorm(smoothTrimGain);
 trimGainLinear = dbtoa(smoothTrimGain);
 
-// Aplicar trim a entradas y generar salidas de monitoreo
+// Aplicar trim a entradas
 leftTrimmed = in1 * trimGainLinear;
-leftTrimmedOutput = leftTrimmed;              // Salida para monitoreo (out4)
-out4 = leftTrimmedOutput;
 rightTrimmed = in2 * trimGainLinear;
-rightTrimmedOutput = rightTrimmed;            // Salida para monitoreo (out5)
-out5 = rightTrimmedOutput;
+
+// Escribir señales en delays
+leftInputDelay.write(in1);          // Sin trim para bypass/dry
+rightInputDelay.write(in2);         // Sin trim para bypass/dry
+leftOutputDelay.write(leftTrimmed); // Con trim para compresión
+rightOutputDelay.write(rightTrimmed); // Con trim para compresión
 
 // Crear señal mono de entrada principal
 mainSignalMono = ((rightTrimmed + leftTrimmed)) * 0.707;  // Suma mono de entrada principal
@@ -349,13 +350,13 @@ sidechainTrimHistoryNext = fixdenorm(smoothSidechainTrimGain);
 sidechainTrimGainLinear = dbtoa(smoothSidechainTrimGain);
 sidechainTrimReference = sidechainTrimGainLinear;  // Referencia para uso posterior
 
-// Aplicar trim a entradas de sidechain y generar salidas de monitoreo
+// Aplicar trim a entradas de sidechain
 leftSidechainTrimmed = in3 * sidechainTrimReference;
-leftSidechainOutput = leftSidechainTrimmed;        // Salida para monitoreo (out6)
-out6 = leftSidechainOutput;
 rightSidechainTrimmed = in4 * sidechainTrimReference;
-rightSidechainOutput = rightSidechainTrimmed;      // Salida para monitoreo (out7)
-out7 = rightSidechainOutput;
+
+// Asignar salidas de sidechain (sin delay por ahora)
+out6 = leftSidechainTrimmed;
+out7 = rightSidechainTrimmed;
 
 // Crear señal mono de sidechain
 sidechainSignalMono = ((rightSidechainTrimmed + leftSidechainTrimmed)) * 0.707;  // Suma mono de sidechain
@@ -746,9 +747,14 @@ leftWithSidechain = mix(leftDryWetMixed, sidechainDelayedWrite, smoothSoloSidech
 
 // OUTPUT PROCESSING - Saturación asimétrica (Off/Soft)
 maxOutput = 0.989; // Limitar a -0.1 dBFS (0.989 lineal) para dejar headroom
+
+// ---- LEFT ----
 saturationAmount = clamp(smoothSoftclip, 0, 1);                  // Cantidad de saturación (0=Off, 1=Full)
 // Cuando DELTA está activo, bypasear también el softclipping
 effectiveSaturationAmount = mix(saturationAmount, 0, smoothDeltaMode); // 0 cuando DELTA=1
+// Que la saturación solo actúe en la cadena WET
+effectiveSaturationAmount = effectiveSaturationAmount * effectiveDryWetMix;
+effectiveSaturationAmount = clamp(effectiveSaturationAmount, 0, 1);
 
 // Saturación asimétrica para añadir color/calidez
 leftSaturated = 0;  // Declarar variable
@@ -810,6 +816,9 @@ rightWithSidechain = mix(rightDryWetMixed, sidechainDelayedTap, smoothSoloSidech
 rightSaturationAmount = clamp(smoothSoftclip, 0, 1);             // Cantidad de saturación (0=Off, 1=Full)
 // Cuando DELTA está activo, bypasear también el softclipping
 rightEffectiveSaturationAmount = mix(rightSaturationAmount, 0, smoothDeltaMode); // 0 cuando DELTA=1
+// De nuevo que la saturación sólo actúe en la parte WET
+rightEffectiveSaturationAmount = rightEffectiveSaturationAmount * effectiveDryWetMix * (1 - smoothSoloSidechain);
+rightEffectiveSaturationAmount = clamp(rightEffectiveSaturationAmount, 0, 1);
 
 // Saturación asimétrica para añadir color/calidez
 rightSaturated = 0;  // Declarar variable
@@ -892,5 +901,4 @@ lpfOrderHistory = lpfOrderHistoryNext;
 // Delays de lookahead (escritura para el siguiente ciclo)
 sidechainWriteDelay.write(normalizedSidechainSignal);
 sidechainTapDelay.write(normalizedSidechainSignal);
-leftOutputDelay.write(leftTrimmed);     // Left trimmed → Left delay
-rightOutputDelay.write(rightTrimmed);   // Right trimmed → Right delay
+// Las escrituras de leftOutputDelay y rightOutputDelay se hacen ahora arriba con el trim

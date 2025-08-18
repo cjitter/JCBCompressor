@@ -1,141 +1,77 @@
 // =============================================================================
-// FILTERS BLOCK - Filtros HPF/LPF para Sidechain
+// FILTERS BLOCK — Sidechain LPF/HPF (RBJ Butterworth, Q=1) SIN SOLO
 // =============================================================================
-// Filtros Butterworth de 2º orden (12 dB/oct) o 4º orden (24 dB/oct)
-// para procesar la señal de detección del compresor.
-//
-// ENTRADA:
-// - in1: Señal de sidechain (sidechainMixedSignal desde Input/Trim)
-//
-// SALIDAS:
-// - out1: Señal filtrada para detector
-// - out2: Señal de entrada sin procesar (para debug/monitoring)
+// ENTRADA:  in1  -> sidechainMixedSignal (mono)
+// SALIDAS:  out1 -> sidechain filtrado (para Detector)
+//           out2 -> passthrough (opcional/monitor)
 
-// PARÁMETROS
-Param j_HPF(20, min=20, default=20, max=20000);       // HPF frequency (Hz)
-Param j_HPFORDER(0, min=0, default=0, max=1);         // HPF order (0=12dB/oct, 1=24dB/oct)
-Param k_LPF(20000, min=20, default=20000, max=20000); // LPF frequency (Hz)
-Param k_LPFORDER(0, min=0, default=0, max=1);         // LPF order (0=12dB/oct, 1=24dB/oct)
-Param l_SC(0, min=0, default=0, max=1);               // Sidechain filter enable
-Param m_SOLOSC(0, min=0, default=0, max=1);           // Solo sidechain signal
+// Parámetros
+Param j_HPF(20,     min=20,   default=20,    max=20000); // HPF freq (Hz)
+Param j_HPFORDER(0, min=0,    default=0,     max=1);     // 0=12 dB/oct, 1=24 dB/oct
+Param k_LPF(20000,  min=20,   default=20000, max=20000); // LPF freq (Hz)
+Param k_LPFORDER(0, min=0,    default=0,     max=1);     // 0=12 dB/oct, 1=24 dB/oct
+Param l_SC(0,       min=0,    default=0,     max=1);     // Enable filtros SC (0: bypass)
 
-// HISTORIAS para filtros
+// Historias (LPF)
 History lpfHist1(0), lpfHist2(0), lpfHist3(0), lpfHist4(0);
 History lpfHist5(0), lpfHist6(0), lpfHist7(0), lpfHist8(0);
+// Historias (HPF)
 History hpfHist1(0), hpfHist2(0), hpfHist3(0), hpfHist4(0);
 History hpfHist5(0), hpfHist6(0), hpfHist7(0), hpfHist8(0);
-
-// HISTORIAS para smoothing
+// Historias smoothing de flags
 History hpfOrderHist(0);
 History lpfOrderHist(0);
 History scEnableHist(0);
-History soloScHist(0);
 
-// =============================================================================
-// SMOOTHING DE PARÁMETROS
-// =============================================================================
-smoothHpfOrder = hpfOrderHist * 0.999 + j_HPFORDER * 0.001;
-hpfOrderHist = fixdenorm(smoothHpfOrder);
+// Smoothing
+smoothHpfOrder = hpfOrderHist * 0.999 + j_HPFORDER * 0.001; hpfOrderHist = fixdenorm(smoothHpfOrder);
+smoothLpfOrder = lpfOrderHist * 0.999 + k_LPFORDER * 0.001; lpfOrderHist = fixdenorm(smoothLpfOrder);
+smoothScEnable = scEnableHist * 0.999 + l_SC        * 0.001; scEnableHist = fixdenorm(smoothScEnable);
 
-smoothLpfOrder = lpfOrderHist * 0.999 + k_LPFORDER * 0.001;
-lpfOrderHist = fixdenorm(smoothLpfOrder);
-
-smoothScEnable = scEnableHist * 0.999 + l_SC * 0.001;
-scEnableHist = fixdenorm(smoothScEnable);
-
-smoothSoloSc = soloScHist * 0.999 + m_SOLOSC * 0.001;
-soloScHist = fixdenorm(smoothSoloSc);
-
-// =============================================================================
-// COEFICIENTES DE FILTROS BUTTERWORTH
-// =============================================================================
-
-// LPF Butterworth
+// RBJ Butterworth Q=1 — LPF
 omega_lpf = (k_LPF * twopi) / samplerate;
-sn_lpf = sin(omega_lpf);
-cs_lpf = cos(omega_lpf);
-alpha_lpf = sn_lpf * 0.5;
-b0_lpf = 1 / (1 + alpha_lpf);
-a0_lpf = ((1 - cs_lpf) * 0.5) * b0_lpf;
-a1_lpf = (1 - cs_lpf) * b0_lpf;
-a2_lpf = a0_lpf;
-b1_lpf = (-2 * cs_lpf) * b0_lpf;
-b2_lpf = (1 - alpha_lpf) * b0_lpf;
+sn_lpf    = sin(omega_lpf);
+cs_lpf    = cos(omega_lpf);
+alpha_lpf = (sn_lpf * 0.5) / 1.0;
+b0_lpf    = 1 / (1 + alpha_lpf);
+a0_lpf    = ((1 - cs_lpf) * 0.5) * b0_lpf;
+a1_lpf    = (1 - cs_lpf) * b0_lpf;
+a2_lpf    = a0_lpf;
+b1_lpf    = (-2 * cs_lpf) * b0_lpf;
+b2_lpf    = (1 - alpha_lpf) * b0_lpf;
 
-// HPF Butterworth
+// RBJ Butterworth Q=1 — HPF
 omega_hpf = (j_HPF * twopi) / samplerate;
-sn_hpf = sin(omega_hpf);
-cs_hpf = cos(omega_hpf);
-alpha_hpf = sn_hpf * 0.5;
-b0_hpf = 1 / (1 + alpha_hpf);
-a0_hpf = ((1 + cs_hpf) * 0.5) * b0_hpf;
-a1_hpf = -(1 + cs_hpf) * b0_hpf;
-a2_hpf = a0_hpf;
-b1_hpf = (-2 * cs_hpf) * b0_hpf;
-b2_hpf = (1 - alpha_hpf) * b0_hpf;
+sn_hpf    = sin(omega_hpf);
+cs_hpf    = cos(omega_hpf);
+alpha_hpf = (sn_hpf * 0.5) / 1.0;
+b0_hpf    = 1 / (1 + alpha_hpf);
+a0_hpf    = ((1 + cs_hpf) * 0.5) * b0_hpf;
+a1_hpf    = (-(1 + cs_hpf)) * b0_hpf;
+a2_hpf    = a0_hpf;
+b1_hpf    = (-2 * cs_hpf) * b0_hpf;
+b2_hpf    = (1 - alpha_hpf) * b0_hpf;
 
-// =============================================================================
-// PROCESAMIENTO LPF
-// =============================================================================
-
-// Primera etapa LPF (12 dB/oct)
+// LPF 12 → 24 dB
 lpf1 = (in1 * a0_lpf + lpfHist3 * a1_lpf + lpfHist1 * a2_lpf) - (lpfHist4 * b1_lpf + lpfHist2 * b2_lpf);
+lpfHist1 = lpfHist3; lpfHist2 = lpfHist4; lpfHist3 = in1; lpfHist4 = lpf1;
 
-// Actualizar historias DESPUÉS del cálculo
-lpfHist1 = lpfHist3;
-lpfHist2 = lpfHist4;
-lpfHist3 = in1;
-lpfHist4 = lpf1;
-
-// Segunda etapa LPF (para 24 dB/oct)
 lpf2 = (lpf1 * a0_lpf + lpfHist7 * a1_lpf + lpfHist5 * a2_lpf) - (lpfHist8 * b1_lpf + lpfHist6 * b2_lpf);
+lpfHist5 = lpfHist7; lpfHist6 = lpfHist8; lpfHist7 = lpf1; lpfHist8 = lpf2;
 
-// Actualizar historias
-lpfHist5 = lpfHist7;
-lpfHist6 = lpfHist8;
-lpfHist7 = lpf1;
-lpfHist8 = lpf2;
-
-// Mezclar entre 12 y 24 dB/oct
-lpfOut = mix(lpf1, lpf2, smoothLpfOrder);
-
-// Mezclar con señal sin filtrar según SC enable
+lpfOut   = mix(lpf1, lpf2, smoothLpfOrder);
 lpfMixed = mix(in1, lpfOut, smoothScEnable);
 
-// =============================================================================
-// PROCESAMIENTO HPF
-// =============================================================================
-
-// Primera etapa HPF (12 dB/oct)
+// HPF 12 → 24 dB
 hpf1 = (lpfMixed * a0_hpf + hpfHist3 * a1_hpf + hpfHist1 * a2_hpf) - (hpfHist4 * b1_hpf + hpfHist2 * b2_hpf);
+hpfHist1 = hpfHist3; hpfHist2 = hpfHist4; hpfHist3 = lpfMixed; hpfHist4 = hpf1;
 
-// Actualizar historias DESPUÉS del cálculo
-hpfHist1 = hpfHist3;
-hpfHist2 = hpfHist4;
-hpfHist3 = lpfMixed;
-hpfHist4 = hpf1;
-
-// Segunda etapa HPF (para 24 dB/oct)
 hpf2 = (hpf1 * a0_hpf + hpfHist7 * a1_hpf + hpfHist5 * a2_hpf) - (hpfHist8 * b1_hpf + hpfHist6 * b2_hpf);
+hpfHist5 = hpfHist7; hpfHist6 = hpfHist8; hpfHist7 = hpf1; hpfHist8 = hpf2;
 
-// Actualizar historias
-hpfHist5 = hpfHist7;
-hpfHist6 = hpfHist8;
-hpfHist7 = hpf1;
-hpfHist8 = hpf2;
-
-// Mezclar entre 12 y 24 dB/oct
 hpfOut = mix(hpf1, hpf2, smoothHpfOrder);
 
-// Mezclar con señal post-LPF según SC enable
-filtered = mix(lpfMixed, hpfOut, smoothScEnable);
-
-// =============================================================================
-// SALIDAS
-// =============================================================================
-
-// Señal filtrada para detector
-out1 = filtered;
-
-// Debug: señal de entrada sin filtrar
-out2 = in1;
+// Salidas
+filtered = hpfOut;
+out1 = mix(in1, filtered, smoothScEnable); // señal final para Detector
+out2 = in1;                                // passthrough (opcional)

@@ -2,34 +2,42 @@
 // OUTPUT BLOCK - Procesamiento de Salida
 // =============================================================================
 // Incluye: Makeup Gain, Auto Gain, Parallel Compression, Dry/Wet Mix,
-// Softclip y modo Delta. Mantiene sincronía con lookahead.
+// Softclip (solo en rama WET) y modo Delta. Mantiene sincronía con lookahead.
 //
 // ENTRADAS:
 // - in1: Señal L comprimida (desde Gain Application)
 // - in2: Señal R comprimida (desde Gain Application)
 // - in3: Señal L original (desde Input/Trim)
 // - in4: Señal R original (desde Input/Trim)
-// - in5: Gain reduction en dB (desde Gain Calculation)
+// - in5: Gain reduction en dB (desde Gain Calculation; valores negativos)
 // - in6: Lookahead en muestras (desde Gain Application)
+// - in7: Sidechain MONO alineado por lookahead (tap desde el patch maestro)
 //
 // SALIDAS:
 // - out1: Señal L final
 // - out2: Señal R final
 
+// =============================================================================
 // PARÁMETROS
-Param i_MAKEUP(0, min=-12, default=0, max=12);        // Makeup gain (dB)
-Param x_AUTOGAIN(0, min=0, default=0, max=1);         // Auto makeup gain enable
-Param w_PARALLEL(0, min=0, default=0, max=1);         // Parallel compression amount
-Param o_DRYWET(1, min=0, default=1, max=1);           // Dry/Wet mix
-Param u_SOFTCLIP(0, min=0, default=0, max=1);         // Softclip amount
-Param v_DELTA(0, min=0, default=0, max=1);            // Delta mode
-Param p_BYPASS(0, min=0, default=0, max=1);           // Bypass
+// =============================================================================
+Param i_MAKEUP(0,   min=-12, default=0, max=12);   // Makeup gain (dB)
+Param x_AUTOGAIN(0, min=0,   default=0, max=1);    // Auto makeup gain enable
+Param w_PARALLEL(0, min=0,   default=0, max=1);    // Parallel compression amount
+Param o_DRYWET(1,   min=0,   default=1, max=1);    // Dry/Wet mix
+Param u_SOFTCLIP(0, min=0,   default=0, max=1);    // Softclip (solo rama WET)
+Param v_DELTA(0,    min=0,   default=0, max=1);    // Delta mode
+Param p_BYPASS(0,   min=0,   default=0, max=1);    // Bypass (1=bypass)
 
-// DELAYS para dry signal
-Delay leftDryDelay(0.025 * samplerate);
-Delay rightDryDelay(0.025 * samplerate);
+Param m_SOLOSC(0, min=0, default=0, max=1);   // Solo sidechain monitor (se mezcla al final)
+// =============================================================================
+//// DELAYS (para DRY con misma latencia que WET)
+// =============================================================================
+Delay leftDryDelay(  0.025 * samplerate);
+Delay rightDryDelay( 0.025 * samplerate);
 
-// HISTORIAS
+// =============================================================================
+//// HISTORIAS (smoothing)
+// =============================================================================
 History makeupHist(0);
 History autoGainHist(0);
 History parallelHist(0);
@@ -40,128 +48,147 @@ History bypassHist(0);
 History reductionHistL(0);
 History reductionHistR(0);
 
-// =============================================================================
-// SMOOTHING DE PARÁMETROS
-// =============================================================================
-smoothMakeup = makeupHist * 0.999 + i_MAKEUP * 0.001;
-makeupHist = fixdenorm(smoothMakeup);
-
-smoothAutoGain = autoGainHist * 0.999 + x_AUTOGAIN * 0.001;
-autoGainHist = fixdenorm(smoothAutoGain);
-
-smoothParallel = parallelHist * 0.999 + w_PARALLEL * 0.001;
-parallelHist = fixdenorm(smoothParallel);
-
-smoothDryWet = dryWetHist * 0.999 + o_DRYWET * 0.001;
-dryWetHist = fixdenorm(smoothDryWet);
-
-smoothSoftclip = softclipHist * 0.999 + u_SOFTCLIP * 0.001;
-softclipHist = fixdenorm(smoothSoftclip);
-
-smoothDelta = deltaHist * 0.999 + v_DELTA * 0.001;
-deltaHist = fixdenorm(smoothDelta);
-
-smoothBypass = bypassHist * 0.999 + (1 - p_BYPASS) * 0.001;
-bypassHist = fixdenorm(smoothBypass);
+History soloScHist(0);
 
 // =============================================================================
-// DELAYS PARA SEÑAL DRY
+//// SMOOTHING CONSTANTES
 // =============================================================================
-// Escribir señales originales
+SMOOTH_A = 0.001;
+SMOOTH_B = 1 - SMOOTH_A; // 0.999
+
+// =============================================================================
+//// SMOOTHING DE PARÁMETROS
+// =============================================================================
+smoothMakeup    = makeupHist   * SMOOTH_B + i_MAKEUP   * SMOOTH_A;  makeupHist   = fixdenorm(smoothMakeup);
+smoothAutoGain  = autoGainHist * SMOOTH_B + x_AUTOGAIN * SMOOTH_A;  autoGainHist = fixdenorm(smoothAutoGain);
+smoothParallel  = parallelHist * SMOOTH_B + w_PARALLEL * SMOOTH_A;  parallelHist = fixdenorm(smoothParallel);
+smoothDryWet    = dryWetHist   * SMOOTH_B + o_DRYWET   * SMOOTH_A;  dryWetHist   = fixdenorm(smoothDryWet);
+smoothSoftclip  = softclipHist * SMOOTH_B + u_SOFTCLIP * SMOOTH_A;  softclipHist = fixdenorm(smoothSoftclip);
+smoothDelta     = deltaHist    * SMOOTH_B + v_DELTA    * SMOOTH_A;  deltaHist    = fixdenorm(smoothDelta);
+
+smoothSoloSc = soloScHist * SMOOTH_B + m_SOLOSC * SMOOTH_A;
+soloScHist   = fixdenorm(smoothSoloSc);
+
+// Bypass se suaviza sobre el valor invertido (1=activo, 0=bypass)
+bypassInverted  = 1 - p_BYPASS;
+smoothBypass    = bypassHist   * SMOOTH_B + bypassInverted * SMOOTH_A;
+bypassHist      = fixdenorm(smoothBypass);
+
+// =============================================================================
+//// DELAYS PARA SEÑAL DRY (sin procesar)
+// =============================================================================
 leftDryDelay.write(in3);
 rightDryDelay.write(in4);
 
-// Leer con mismo delay que las señales comprimidas
-left_dry_delayed = leftDryDelay.read(in6, interp="linear");
+left_dry_delayed  = leftDryDelay.read(in6,  interp="linear");
 right_dry_delayed = rightDryDelay.read(in6, interp="linear");
 
 // =============================================================================
-// MODO DELTA - Bypass automático cuando está activo
+//// MODO DELTA: ajustes efectivos
 // =============================================================================
-effectiveAutoGain = mix(smoothAutoGain, 0, smoothDelta);
-effectiveParallel = mix(smoothParallel, 0, smoothDelta);
-effectiveDryWet = mix(smoothDryWet, 1, smoothDelta);
-effectiveSoftclip = mix(smoothSoftclip, 0, smoothDelta);
-
-// =============================================================================
-// MODO DELTA - Señal diferencia
-// =============================================================================
-// Calcular señal delta (lo que se quitó)
-left_delta = left_dry_delayed - in1;
-right_delta = right_dry_delayed - in2;
-
-// Mezclar con señal comprimida
-left_with_delta = mix(in1, left_delta, smoothDelta);
-right_with_delta = mix(in2, right_delta, smoothDelta);
+// En DELTA:
+// - AutoGain = 0
+// - Parallel = 0
+// - Dry/Wet = 1 (100% WET - pero la rama WET será 'delta' previo al makeup)
+// - Softclip = 0 (no satura en modo delta)
+effectiveAutoGain  = mix(smoothAutoGain, 0, smoothDelta);
+effectiveParallel  = mix(smoothParallel, 0, smoothDelta);
+effectiveDryWet    = mix(smoothDryWet,   1, smoothDelta);
+effectiveSoftclip  = mix(smoothSoftclip, 0, smoothDelta);
 
 // =============================================================================
-// MAKEUP GAIN Y AUTO GAIN
+//// MODO DELTA - construir señal diferencia antes de makeup
 // =============================================================================
-// Suavizar gain reduction para auto makeup
-reduction_smooth_l = reductionHistL * 0.999 + in5 * 0.001;
-reductionHistL = fixdenorm(reduction_smooth_l);
-reduction_smooth_r = reductionHistR * 0.999 + in5 * 0.001;
-reductionHistR = fixdenorm(reduction_smooth_r);
+left_with_delta  = mix(in1, left_dry_delayed - in1,  smoothDelta);
+right_with_delta = mix(in2, right_dry_delayed - in2, smoothDelta);
 
-// Auto makeup = 70% de la reducción
-auto_makeup = reduction_smooth_l * -0.7;
-combined_makeup = auto_makeup + smoothMakeup;
-final_makeup = mix(smoothMakeup, combined_makeup, effectiveAutoGain);
+// =============================================================================
+//// MAKEUP GAIN y AUTO MAKEUP
+// =============================================================================
+// Suavizamos la reducción de ganancia (in5, dB negativos => aplicar signo)
+reduction_smooth_l = reductionHistL * SMOOTH_B + in5 * SMOOTH_A;  reductionHistL = fixdenorm(reduction_smooth_l);
+reduction_smooth_r = reductionHistR * SMOOTH_B + in5 * SMOOTH_A;  reductionHistR = fixdenorm(reduction_smooth_r);
 
-// Cuando DELTA activo, no aplicar makeup
-final_makeup_delta = mix(final_makeup, 0, smoothDelta);
-makeup_linear = dbtoa(final_makeup_delta);
+// Auto makeup = 70% de la reducción (compensa parcialmente)
+auto_makeup_db = reduction_smooth_l * -0.7;
 
-// Aplicar makeup
-left_makeup = left_with_delta * makeup_linear;
+// Mezcla entre makeup manual y (auto + manual)
+combined_makeup_db = auto_makeup_db + smoothMakeup;
+final_makeup_db    = mix(smoothMakeup, combined_makeup_db, effectiveAutoGain);
+
+// En DELTA, forzamos makeup a 0 para escuchar solo la diferencia a nivel unidad
+final_makeup_db = mix(final_makeup_db, 0, smoothDelta);
+makeup_linear   = dbtoa(final_makeup_db);
+
+// Aplicar makeup a la señal (todavía en rama WET)
+left_makeup  = left_with_delta  * makeup_linear;
 right_makeup = right_with_delta * makeup_linear;
 
 // =============================================================================
-// COMPRESIÓN PARALELA
+//// COMPRESIÓN PARALELA (suma controlada de DRY a la rama WET)
 // =============================================================================
-// Mezclar señal comprimida con original
-left_parallel = left_makeup + (left_dry_delayed * effectiveParallel);
+left_parallel  = left_makeup  + (left_dry_delayed  * effectiveParallel);
 right_parallel = right_makeup + (right_dry_delayed * effectiveParallel);
 
-// Seleccionar entre normal y parallel
-left_post_parallel = mix(left_makeup, left_parallel, effectiveParallel);
+// Interpolar entre puro WET y mezcla paralela según effectiveParallel
+left_post_parallel  = mix(left_makeup,  left_parallel,  effectiveParallel);
 right_post_parallel = mix(right_makeup, right_parallel, effectiveParallel);
 
 // =============================================================================
-// DRY/WET MIX
+//// SOFTCLIP EN RAMA WET (antes del mix DRY/WET)
 // =============================================================================
-left_mixed = mix(left_dry_delayed, left_post_parallel, effectiveDryWet);
-right_mixed = mix(right_dry_delayed, right_post_parallel, effectiveDryWet);
-
-// =============================================================================
-// SOFTCLIP - Saturación asimétrica
-// =============================================================================
-// Limitar a -0.1 dBFS (0.989 lineal) para dejar headroom
 max_output = 0.989;
 
-// Canal izquierdo
-left_saturated = 0;
-if(left_mixed > 0) {
-    left_saturated = tanh(left_mixed * 1.2) * 0.833;
-
+// L: saturación asimétrica
+left_wet_preclip = left_post_parallel;
+left_sat = 0;
+if (left_wet_preclip > 0) {
+    left_sat = tanh(left_wet_preclip * 1.2) * 0.833;
 } else {
-    left_saturated = tanh(left_mixed * 0.8) * 1.25;
+    left_sat = tanh(left_wet_preclip * 0.8) * 1.25;
 }
-left_saturated = clamp(left_saturated, -max_output, max_output);
-left_clipped = mix(left_mixed, left_saturated, effectiveSoftclip);
+left_sat = clamp(left_sat, -max_output, max_output);
+left_wet = mix(left_wet_preclip, left_sat, effectiveSoftclip);
 
-// Canal derecho
-right_saturated = 0;
-if(right_mixed > 0) {
-    right_saturated = tanh(right_mixed * 1.2) * 0.833;
+// R: saturación asimétrica
+right_wet_preclip = right_post_parallel;
+right_sat = 0;
+if (right_wet_preclip > 0) {
+    right_sat = tanh(right_wet_preclip * 1.2) * 0.833;
 } else {
-    right_saturated = tanh(right_mixed * 0.8) * 1.25;
+    right_sat = tanh(right_wet_preclip * 0.8) * 1.25;
 }
-right_saturated = clamp(right_saturated, -max_output, max_output);
-right_clipped = mix(right_mixed, right_saturated, effectiveSoftclip);
+right_sat = clamp(right_sat, -max_output, max_output);
+right_wet = mix(right_wet_preclip, right_sat, effectiveSoftclip);
 
 // =============================================================================
-// BYPASS FINAL
+//// DRY/WET MIX (usar WET ya softclippeado)
 // =============================================================================
-out1 = mix(left_dry_delayed, left_clipped, smoothBypass);
-out2 = mix(right_dry_delayed, right_clipped, smoothBypass);
+left_mixed  = mix(left_dry_delayed,  left_wet,  effectiveDryWet);
+right_mixed = mix(right_dry_delayed, right_wet, effectiveDryWet);
+
+// =============================================================================
+// SOLO SIDECHAIN (monitor) — mezcla al final antes del bypass
+// =============================================================================
+sc_mono  = in7;       // ya alineado por el lookahead del maestro
+sc_left  = sc_mono;   // duplicamos a estéreo
+sc_right = sc_mono;
+
+left_mixed  = mix(left_mixed,  sc_left,  smoothSoloSc);
+right_mixed = mix(right_mixed, sc_right, smoothSoloSc);
+
+// =============================================================================
+//// BYPASS SUAVE (fundido entre DRY y procesado)
+// =============================================================================
+left_out  = mix(left_dry_delayed,  left_mixed,  smoothBypass);
+right_out = mix(right_dry_delayed, right_mixed, smoothBypass);
+
+// (Opcional) Seguridad final
+left_out  = clamp(left_out,  -1, 1);
+right_out = clamp(right_out, -1, 1);
+
+// =============================================================================
+//// SALIDAS
+// =============================================================================
+out1 = left_out;
+out2 = right_out;

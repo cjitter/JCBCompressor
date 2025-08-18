@@ -226,11 +226,20 @@ if(z_SMOOTH >= 0.001) {
 // =============================================================================
 // SELECTOR Y MORPHING DE ALGORITMOS - Transición continua sin saltos
 // =============================================================================
+// f_ALGO: 0=Sharp, 1=Classic, 2=Slow  → morph continuo en [0..2]
 detector_control = clamp(f_ALGO, 0, 2);
 fade_amount = detector_control - 1;
-envelope_out = detector_control <= 1 ? mix(expr_algo0, expr_algo1, detector_control) : mix(expr_algo1, expr_algo2, fade_amount);
 
+// Morphing en dos etapas: 0→1 (Sharp↔Classic), 1→2 (Classic↔Slow)
+// - Para [0,1]: interpola entre expr_algo0 y expr_algo1 con peso detector_control
+// - Para (1,2]: interpola entre expr_algo1 y expr_algo2 con peso (detector_control-1)
+envelope_out_db = detector_control <= 1
+    ? mix(expr_algo0, expr_algo1, detector_control)
+    : mix(expr_algo1, expr_algo2, fade_amount);
+    
 // =============================================================================
 // SALIDA
 // =============================================================================
-out1 = envelope_out;
+// Salida del bloque: envolvente en dB para GainCalc
+out1 = envelope_out_db;
+
