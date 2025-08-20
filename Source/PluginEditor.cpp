@@ -292,6 +292,28 @@ JCBCompressorAudioProcessorEditor::~JCBCompressorAudioProcessorEditor()
     }
     
     // 4. LookAndFeel
+    // Limpiar LookAndFeels de TODOS los sliders
+    leftTopKnobs.thdSlider.setLookAndFeel(nullptr);
+    leftTopKnobs.ratioSlider.setLookAndFeel(nullptr);
+    leftTopKnobs.kneeSlider.setLookAndFeel(nullptr);
+    leftTopKnobs.againSlider.setLookAndFeel(nullptr);
+    
+    leftBottomKnobs.drywetSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.lookaheadSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.clipSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.parallSlider.setLookAndFeel(nullptr);
+    
+    rightBottomKnobs.atkSlider.setLookAndFeel(nullptr);
+    rightBottomKnobs.relSlider.setLookAndFeel(nullptr);
+    rightBottomKnobs.autorelButton.setLookAndFeel(nullptr);
+    
+    rightTopControls.algoSlider.setLookAndFeel(nullptr);
+    rightTopControls.reactSlider.setLookAndFeel(nullptr);
+    rightTopControls.smoothSlider.setLookAndFeel(nullptr);
+    
+    sidechainControls.hpfSlider.setLookAndFeel(nullptr);
+    sidechainControls.lpfSlider.setLookAndFeel(nullptr);
+    
     setLookAndFeel(nullptr);
 }
 
@@ -555,6 +577,12 @@ void JCBCompressorAudioProcessorEditor::resized()
 
 void JCBCompressorAudioProcessorEditor::timerCallback()
 {
+    // Verificar si el processor necesita actualización del editor
+    if (processor.needsEditorUpdate.exchange(false))
+    {
+        updateTransferFunctionFromProcessor();
+    }
+    
     // Procesar actualizaciones de UI pendientes desde atómicos (thread-safe)
     if (hasUIUpdates.load())
     {
@@ -2151,6 +2179,7 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
         processor.setPresetDisplayText(displayName);
         processor.setPresetTextItalic(false);
         presetArea.presetMenu.setTextItalic(false);
+        presetArea.presetMenu.setTextWhenNothingSelected(displayName);
         
         // Actualizar sliders desde APVTS
         updateSliderValues();
@@ -3183,8 +3212,14 @@ void JCBCompressorAudioProcessorEditor::deletePresetFile()
     juce::String presetName;
     
     if (selectedId > 0) {
-        // Hay un preset seleccionado en el menú
-        presetName = presetArea.presetMenu.getItemText(selectedId - 1);
+        // Obtener el texto del preset seleccionado
+        // Primero intentar obtenerlo por su ID directo (funciona con categorías)
+        presetName = presetArea.presetMenu.getText();
+        
+        // Si está vacío, intentar por índice (compatibilidad)
+        if (presetName.isEmpty()) {
+            presetName = presetArea.presetMenu.getItemText(selectedId - 1);
+        }
     } else {
         // No hay selección, verificar si hay un preset modificado
         juce::String displayText = presetArea.presetMenu.getTextWhenNothingSelected();

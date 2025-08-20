@@ -311,7 +311,7 @@ private:
     // Botones superiores junto a presets (y=15)
     struct TopButtons {
         juce::TextButton abStateButton{"A/B"};
-        juce::TextButton abCopyButton{"A→B"};
+        juce::TextButton abCopyButton{"A-B"};
     } topButtons;
     
     // Botón central inferior (y=163)  

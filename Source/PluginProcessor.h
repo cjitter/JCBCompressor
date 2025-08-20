@@ -18,6 +18,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
 
 // Archivos del proyecto
 #include "JCBCompressor.h"
@@ -29,7 +30,8 @@ using namespace juce;
 //==============================================================================
 class JCBCompressorAudioProcessor : public juce::AudioProcessor,
                                     public juce::AudioProcessorValueTreeState::Listener,
-                                    private juce::Timer
+                                    private juce::Timer,
+                                    private juce::AsyncUpdater
 {
 public:
     //==============================================================================
@@ -44,6 +46,7 @@ public:
     
     bool isBusesLayoutSupported(const juce::AudioProcessor::BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     
     //==============================================================================
     // Gestión del editor
@@ -104,6 +107,9 @@ public:
     void setPresetDisplayText(const juce::String& text) noexcept { presetDisplayText = text; }
     bool getPresetTextItalic() const noexcept { return presetTextItalic; }
     void setPresetTextItalic(bool italic) noexcept { presetTextItalic = italic; }
+    
+    // Flag para indicar que el editor necesita actualización
+    std::atomic<bool> needsEditorUpdate{false};
     
     // Detección de formato del DAW
     bool isProTools() const noexcept;
@@ -187,7 +193,7 @@ private:
     // Actualizaciones de medidores
     void updateInputMeters(const juce::AudioBuffer<float>& buffer);
     void updateOutputMeters(const juce::AudioBuffer<float>& buffer);
-    void updateGainReductionMeter();
+    void updateGainReductionMeter(int numSamples);
     void updateSidechainMeters(const juce::AudioBuffer<float>& buffer);
     void captureInputWaveformData(const juce::AudioBuffer<float>& inputBuffer, int numSamples);
     void captureOutputWaveformData(int numSamples);
@@ -288,6 +294,60 @@ private:
     ParameterState stateB;
     bool isStateA{true};
     
+    //==============================================================================
+    // BYPASS COMPENSADO
+    juce::AudioBuffer<float> bypassDelayBuffer;
+    int bypassDelayWritePos { 0 };
+    juce::SpinLock bypassDelayLock;
+    // ---- Suavizado de transición de bypass (host) ----
+    juce::AudioBuffer<float> lastWetTail; // cola del último bloque activo
+    int   lastWetTailLen   { 0 };         // muestras válidas guardadas
+    bool  wasHostBypassed  { false };     // estado del bloque anterior
+    int   bypassFadeLen    { 128 };        // 32–64-128 recomendado
+
+    int bypassFadePos { -1 }; // -1 = inactivo
+
+    // Espejo del bypass del host
+    std::atomic<bool> hostBypassMirror { false };
+
+    // Helper para leer el parámetro de bypass del host
+    inline bool isHostBypassed() const noexcept
+    {
+        if (auto* p = getBypassParameter())          // JUCE crea un parámetro estándar de bypass
+            return p->getValue() >= 0.5f;            // 0..1
+        return false;
+    }
+
+    // LATENCIA SEGURA (message thread)
+    std::atomic<int> pendingLatency { -1 };
+    int currentLatency = 0;
+    
+    // LOOKAHEAD DEBOUNCE
+    std::atomic<float>   stagedLookaheadMs { 0.0f };
+    std::atomic<uint32_t> lastLAChangeMs   { 0 };
+    std::atomic<bool>    laCommitPending   { false };
+    int                  laDebounceMs      { 140 };
+    
+    // Offset intrínseco de Gen~ (0 si Gen no añade +1; 1 si sí)
+    std::atomic<int> intrinsicGenOffset { 0 };
+    
+    // Helper: calcula latencia en muestras
+    int computeLatencySamples (double sr) const
+    {
+        if (sr <= 0.0) return 0;
+        float latMs = apvts.getRawParameterValue("n_LOOKAHEAD")->load();
+        if (! std::isfinite(latMs) || latMs < 0.0f) latMs = 0.0f;
+        const int base = juce::roundToInt (latMs * sr / 1000.0);
+        return juce::jmax (0, base + intrinsicGenOffset.load(std::memory_order_relaxed));
+    }
+    
+    // Override de AsyncUpdater
+    void handleAsyncUpdate() override;
+
+    // Cachear índices de gen (evitar bubles por nombre)
+    int genIdxLookahead { -1 };
+    int genIdxBypass   { -1 }; // si lo usas en el compresor/expansor
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JCBCompressorAudioProcessor)
 };

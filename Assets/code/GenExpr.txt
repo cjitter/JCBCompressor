@@ -255,9 +255,28 @@ scEnableHistoryNext = fixdenorm(smoothScEnable);
 smoothSoftclip = (softclipHistory * SMOOTH_HISTORY_FACTOR) + (u_SOFTCLIP * SMOOTH_PARAM_FACTOR);
 softclipHistoryNext = fixdenorm(smoothSoftclip);
 
-// Lookahead: mismo smoothing que el resto (0.001/0.999)
-smoothLookahead = (lookaheadHistory * SMOOTH_HISTORY_FACTOR) + (n_LOOKAHEAD * SMOOTH_PARAM_FACTOR);
+// Lookahead sin smoothing en Gen: JUCE se encarga de la gestión
+smoothLookahead = n_LOOKAHEAD;                 // directo, sin 0.001/0.999
 lookaheadHistoryNext = fixdenorm(smoothLookahead);
+
+// Cuantizar a muestras enteras (consistencia con setLatencySamples en host)
+lookaheadSamples = round(mstosamps(smoothLookahead));
+
+// ==== PRE-WRITE para feedback=0 real ====
+// (mismo smoothing de trim que usas luego)
+smoothTrimGain = (trimHistory * SMOOTH_HISTORY_FACTOR) + (a_TRIM * SMOOTH_PARAM_FACTOR);
+trimHistoryNext = fixdenorm(smoothTrimGain);
+trimGainLinear = dbtoa(smoothTrimGain);
+
+// Señales con trim para rama de compresión
+leftTrimmed  = in1 * trimGainLinear;
+rightTrimmed = in2 * trimGainLinear;
+
+// Escribir SIEMPRE antes de leer (evita +1 muestra intrínseca)
+leftInputDelay.write(in1);              // sin trim para DRY
+rightInputDelay.write(in2);
+leftOutputDelay.write(leftTrimmed);     // con trim para compresión
+rightOutputDelay.write(rightTrimmed);
 
 // =============================================================================
 // LOOKAHEAD DELAY SYSTEM - Sistema de delay predictivo
@@ -334,11 +353,11 @@ trimGainLinear = dbtoa(smoothTrimGain);
 leftTrimmed = in1 * trimGainLinear;
 rightTrimmed = in2 * trimGainLinear;
 
-// Escribir señales en delays
-leftInputDelay.write(in1);          // Sin trim para bypass/dry
-rightInputDelay.write(in2);         // Sin trim para bypass/dry
-leftOutputDelay.write(leftTrimmed); // Con trim para compresión
-rightOutputDelay.write(rightTrimmed); // Con trim para compresión
+// Escribir señales en delays (comentando para que surta efecto PRE-WRITE para feedback=0 real)
+//leftInputDelay.write(in1);          // Sin trim para bypass/dry
+//rightInputDelay.write(in2);         // Sin trim para bypass/dry
+//leftOutputDelay.write(leftTrimmed); // Con trim para compresión
+//rightOutputDelay.write(rightTrimmed); // Con trim para compresión
 
 // Crear señal mono de entrada principal
 mainSignalMono = ((rightTrimmed + leftTrimmed)) * 0.707;  // Suma mono de entrada principal
