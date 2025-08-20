@@ -1082,6 +1082,11 @@ void JCBCompressorAudioProcessorEditor::buttonClicked(juce::Button* button)
 //==============================================================================
 void JCBCompressorAudioProcessorEditor::handleParameterChange()
 {
+    // Verificación de thread solo en debug - no afecta release builds
+    #if JUCE_DEBUG
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+    #endif
+    
     // No hacer nada si estamos cargando un preset
     if (isLoadingPreset) {
         return;
