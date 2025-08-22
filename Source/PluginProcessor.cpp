@@ -123,7 +123,7 @@ JCBCompressorAudioProcessor::~JCBCompressorAudioProcessor()
                 m_InputBuffers[i] = nullptr;
             }
         }
-        delete m_InputBuffers;
+        delete[] m_InputBuffers;
         m_InputBuffers = nullptr;
     }
     
@@ -134,7 +134,7 @@ JCBCompressorAudioProcessor::~JCBCompressorAudioProcessor()
                 m_OutputBuffers[i] = nullptr;
             }
         }
-        delete m_OutputBuffers;
+        delete[] m_OutputBuffers;
         m_OutputBuffers = nullptr;
     }
     
