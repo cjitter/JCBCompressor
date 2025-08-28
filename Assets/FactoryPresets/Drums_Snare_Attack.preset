@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PARAMETERS>
+  <PARAM id="a_TRIM" value="1.788139343261719e-7"/>
+  <PARAM id="b_THD" value="-40.0"/>
+  <PARAM id="c_RATIO" value="10.0"/>
+  <PARAM id="d_ATK" value="190.0"/>
+  <PARAM id="e_REL" value="180.0"/>
+  <PARAM id="f_ALGO" value="1.0"/>
+  <PARAM id="g_REACT" value="1.0"/>
+  <PARAM id="h_KNEE" value="18.0"/>
+  <PARAM id="i_MAKEUP" value="1.788139343261719e-7"/>
+  <PARAM id="j_HPF" value="450.0"/>
+  <PARAM id="k_LPF" value="7134.0"/>
+  <PARAM id="l_SC" value="1.0"/>
+  <PARAM id="m_SOLOSC" value="0.0"/>
+  <PARAM id="n_LOOKAHEAD" value="0.0"/>
+  <PARAM id="o_DRYWET" value="1.0"/>
+  <PARAM id="p_BYPASS" value="0.0"/>
+  <PARAM id="r_KEY" value="0.0"/>
+  <PARAM id="s_AUTORELEASE" value="0.0"/>
+  <PARAM id="u_SOFTCLIP" value="1.0"/>
+  <PARAM id="v_DELTA" value="0.0"/>
+  <PARAM id="w_PARALLEL" value="0.0"/>
+  <PARAM id="x_AUTOGAIN" value="0.0"/>
+  <PARAM id="y_SCTRIM" value="0.0"/>
+  <PARAM id="z_SMOOTH" value="0.0"/>
+  <PARAM id="j_HPFORDER" value="0.0"/>
+  <PARAM id="k_LPFORDER"/>
+  <Presets currentPresetID="0" tooltipEnabled="1" presetDisplayText="DEFAULT"
+           presetTextItalic="0" envelopeVisualEnabled="1" tooltipLanguageEnglish="0"
+           editorWidth="1260" editorHeight="360"/>
+  <ABStates isStateA="1">
+    <StateA/>
+    <StateB/>
+  </ABStates>
+  <UISettings displayGraphicsEnvelopes="1"/>
+</PARAMETERS>

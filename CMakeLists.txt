@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(JCBCompressor VERSION 0.9.993)
+project(JCBCompressor VERSION 1.0.0)
 
 # Fuerza símbolos de depuración en Debug (cualquier generador: Ninja, Make, etc.)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
@@ -75,7 +75,7 @@ juce_add_plugin(JCBCompressor
         # Información básica del plugin
         PLUGIN_NAME "JCBCompressor"
         PRODUCT_NAME "JCBCompressor"
-        VERSION 0.9.993
+        VERSION 1.0.0
         DESCRIPTION "Stereo-linked feedforward compressor with external sidechain, parallel processing and lookahead"
 
         # Información de la empresa
@@ -139,11 +139,22 @@ juce_add_binary_data(JCBCompressor_BinaryData
         Assets/code/Detector.txt
         Assets/code/GainCalc.txt
         Assets/code/Output.txt
+
         # Presets de fábrica
-        Assets/FactoryPresets/Mix_Gentle_Compression.preset
-        Assets/FactoryPresets/Voces_Warmth.preset
-        Assets/FactoryPresets/Drums_Bus_Glue.preset
-        Assets/FactoryPresets/Mix_Master_Bus.preset
+        #Assets/FactoryPresets/Mix_Gentle_Compression.preset
+        #Assets/FactoryPresets/Voces_Warmth.preset
+        #Assets/FactoryPresets/Drums_Bus_Glue.preset
+        #Assets/FactoryPresets/Mix_Master_Bus.preset
+
+        # Presets de José Peña
+        Assets/FactoryPresets/Guitars_Guitar_Pedal.preset
+        Assets/FactoryPresets/Drums_Snare_Harmonics.preset
+        Assets/FactoryPresets/Drums_Kick_Long.preset
+        Assets/FactoryPresets/Drums_Snare_Attack.preset
+        Assets/FactoryPresets/Bass_E._Bass_Soft.preset
+        Assets/FactoryPresets/Vocals_Vocal_Forte.preset
+        Assets/FactoryPresets/Bass_Electric_Bass.preset
+        Assets/FactoryPresets/Drums_Drum_room.preset
 )
 
 # Linkear binary data al plugin

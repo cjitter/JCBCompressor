@@ -64,9 +64,9 @@ JCBCompressorAudioProcessorEditor::JCBCompressorAudioProcessorEditor (JCBCompres
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v0.9.993 beta";  // Solo versión para Logic Pro
+        titleText = "v1.0.0-alpha.1";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBCompressor v0.9.993 beta";  // Nombre completo para otros DAWs
+        titleText = "JCBCompressor v1.0.0-alpha.1";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -488,16 +488,16 @@ void JCBCompressorAudioProcessorEditor::resized()
     sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
     
     // === PRESET AREA (TOP LEFT) ===
-    presetArea.saveButton.setBounds(getScaledBounds(15, 15, 20, 12));  // Alineado con undo
-    presetArea.saveAsButton.setBounds(getScaledBounds(37, 15, 25, 12));
-    presetArea.deleteButton.setBounds(getScaledBounds(64, 15, 25, 12));
-    presetArea.backButton.setBounds(getScaledBounds(91, 15, 18, 12));
-    presetArea.nextButton.setBounds(getScaledBounds(112, 15, 18, 12));
-    presetArea.presetMenu.setBounds(getScaledBounds(133, 15, 65, 12));
+    presetArea.saveButton.setBounds(getScaledBounds(5, 15, 20, 12));  // Alineado con undo
+    presetArea.saveAsButton.setBounds(getScaledBounds(27, 15, 25, 12));
+    presetArea.deleteButton.setBounds(getScaledBounds(54, 15, 25, 12));
+    presetArea.backButton.setBounds(getScaledBounds(81, 15, 14, 12));
+    presetArea.nextButton.setBounds(getScaledBounds(98, 15, 14, 12));
+    presetArea.presetMenu.setBounds(getScaledBounds(114, 15, 95, 12));
     
     // Botones A/B junto al menú de preset
-    topButtons.abStateButton.setBounds(getScaledBounds(202, 15, 18, 12));
-    topButtons.abCopyButton.setBounds(getScaledBounds(222, 15, 22, 12));
+    topButtons.abStateButton.setBounds(getScaledBounds(213, 15, 18, 12));
+    topButtons.abCopyButton.setBounds(getScaledBounds(233, 15, 22, 12));
     
     // === BOTONES DE UTILIDAD (INFERIOR IZQUIERDA) ===
     utilityButtons.undoButton.setBounds(getScaledBounds(15, 179, 22, 12));
@@ -1652,7 +1652,7 @@ void JCBCompressorAudioProcessorEditor::setupSidechainControls()
     sidechainControls.hpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
     sidechainControls.hpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
     sidechainControls.hpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    sidechainControls.hpfSlider.setTextBoxIsEditable(false);
+    sidechainControls.hpfSlider.setTextBoxIsEditable(true);
     sidechainControls.hpfSlider.setEnabled(false);  // Inicialmente deshabilitado
     sidechainControls.hpfSlider.setAlpha(0.0f);  // Inicialmente invisible
     sidechainControls.hpfSlider.setDoubleClickReturnValue(true, 20.0f);
@@ -1686,7 +1686,7 @@ void JCBCompressorAudioProcessorEditor::setupSidechainControls()
     sidechainControls.lpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
     sidechainControls.lpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
     sidechainControls.lpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    sidechainControls.lpfSlider.setTextBoxIsEditable(false);
+    sidechainControls.lpfSlider.setTextBoxIsEditable(true);
     sidechainControls.lpfSlider.setEnabled(false);  // Inicialmente deshabilitado
     sidechainControls.lpfSlider.setAlpha(0.0f);  // Inicialmente invisible
     sidechainControls.lpfSlider.setDoubleClickReturnValue(true, 20000.0f);
@@ -2074,8 +2074,8 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                 }
             }
         } 
-        else if (presetName.startsWith("Mix_") || presetName.startsWith("Drums_") || 
-                 presetName.startsWith("Voces_") || presetName.startsWith("General_")) {
+        else if (presetName.startsWith("Guitars_") || presetName.startsWith("Bass_") || 
+                 presetName.startsWith("Drums_") || presetName.startsWith("Vocals_")) {
             // Es un factory preset con prefijo de categoría - cargar desde BinaryData
             juce::String resourceName = presetName + "_preset";
             
@@ -2110,16 +2110,9 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                                 bool soloScActive = sidechainControls.soloScButton.getToggleState();
                                 grMeter.setVisible(showGraphics && !soloScActive);
                             } else {
-                                // Si no hay UISettings guardado, los Factory presets siempre activan graphics
-                                utilityButtons.runGraphicsButton.setToggleState(true, juce::dontSendNotification);
-                                processor.displayGraphicsEnvelopes = true;
-                                
-                                // Actualizar componentes visuales (graphics ON = envelopes VISIBLES)
-                                transferDisplay.setEnvelopeVisible(true);
-                                processor.setEnvelopeVisualEnabled(true);
-                                // Actualizar visibilidad del grMeter considerando SOLO SC
-                                bool soloScActive = sidechainControls.soloScButton.getToggleState();
-                                grMeter.setVisible(!soloScActive);
+                                // Si no hay UISettings guardado, mantener el estado actual
+                                // No cambiar el estado del botón graphics
+                                processor.displayGraphicsEnvelopes = utilityButtons.runGraphicsButton.getToggleState();
                             }
                             
                             // Queue las actualizaciones de parámetros para botones momentáneos
@@ -2157,7 +2150,8 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
                         grMeter.setVisible(showGraphics && !soloScActive);
                     } else {
                         // Si no hay UISettings guardado, mantener el estado actual del botón
-                        // No cambiar nada, usar el estado que ya tiene el plugin
+                        // Sincronizar con el estado actual del botón
+                        processor.displayGraphicsEnvelopes = utilityButtons.runGraphicsButton.getToggleState();
                     }
                     
                     // Queue actualizaciones de parámetros para botones momentáneos
@@ -2171,14 +2165,14 @@ void JCBCompressorAudioProcessorEditor::setupPresetArea()
         
         // Para mostrar en el menú, usar nombre limpio sin prefijos
         juce::String displayName = presetName;
-        if (presetName.startsWith("Mix_")) {
-            displayName = "[F] " + presetName.substring(4).replace("_", " ");
+        if (presetName.startsWith("Guitars_")) {
+            displayName = "[F] " + presetName.substring(8).replace("_", " ");
+        } else if (presetName.startsWith("Bass_")) {
+            displayName = "[F] " + presetName.substring(5).replace("_", " ");
         } else if (presetName.startsWith("Drums_")) {
             displayName = "[F] " + presetName.substring(6).replace("_", " ");
-        } else if (presetName.startsWith("Voces_")) {
-            displayName = "[F] " + presetName.substring(6).replace("_", " ");
-        } else if (presetName.startsWith("General_")) {
-            displayName = "[F] " + presetName.substring(8).replace("_", " ");
+        } else if (presetName.startsWith("Vocals_")) {
+            displayName = "[F] " + presetName.substring(7).replace("_", " ");
         }
         
         processor.setPresetDisplayText(displayName);
@@ -2951,23 +2945,33 @@ void JCBCompressorAudioProcessorEditor::refreshPresetMenu()
             juce::String cleanName = resourceName.replace("_preset", "");
             
             // Detectar categoría del prefijo
-            juce::String category = "General";
+            juce::String category;
             juce::String presetName = cleanName;
             
-            if (cleanName.startsWith("Mix_"))
+            if (cleanName.startsWith("Guitars_"))
             {
-                category = "Mix";
-                presetName = cleanName.substring(4).replace("_", " ");
+                category = "Guitars";
+                presetName = cleanName.substring(8).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Bass_"))
+            {
+                category = "Bass";
+                presetName = cleanName.substring(5).replace("_", " ");
             }
             else if (cleanName.startsWith("Drums_"))
             {
                 category = "Drums";
                 presetName = cleanName.substring(6).replace("_", " ");
             }
-            else if (cleanName.startsWith("Voces_"))
+            else if (cleanName.startsWith("Vocals_"))
             {
-                category = "Voces";
-                presetName = cleanName.substring(6).replace("_", " ");
+                category = "Vocals";
+                presetName = cleanName.substring(7).replace("_", " ");
+            }
+            else
+            {
+                // Si no tiene prefijo reconocido, saltar este preset
+                continue;
             }
             
             categorizedPresets[category].add("[F] " + presetName);
@@ -2976,7 +2980,7 @@ void JCBCompressorAudioProcessorEditor::refreshPresetMenu()
     }
     
     // Añadir categorías al menú en orden específico
-    juce::StringArray categoryOrder = {"Mix", "Drums", "Voces", "General"};
+    juce::StringArray categoryOrder = {"Guitars", "Bass", "Drums", "Vocals"};
     
     for (const auto& category : categoryOrder)
     {
@@ -3261,6 +3265,9 @@ void JCBCompressorAudioProcessorEditor::deletePresetFile()
             if (presetFile.existsAsFile()) {
                 presetFile.moveToTrash();
                 
+                // Resetear el último preset para evitar selección automática
+                processor.setLastPreset(0);
+                
                 // Actualizar el menú
                 refreshPresetMenu();
                 
@@ -3286,13 +3293,40 @@ void JCBCompressorAudioProcessorEditor::selectNextPreset()
     
     int currentId = presetArea.presetMenu.getSelectedId();
     
-    // Si no hay selección actual, seleccionar el primer preset
+    // Si no hay selección actual (preset modificado), buscar el preset base
     if (currentId == 0) {
-        presetArea.presetMenu.setSelectedId(allIds[0]);
-        if (presetArea.presetMenu.onChange) {
-            presetArea.presetMenu.onChange();
+        // Obtener el nombre del preset actual sin asterisco
+        juce::String currentText = presetArea.presetMenu.getTextWhenNothingSelected();
+        if (currentText.endsWith("*")) {
+            currentText = currentText.dropLastCharacters(1).trimEnd();
         }
-        return;
+        
+        // Si hay un texto válido, buscar el preset correspondiente
+        if (currentText.isNotEmpty() && currentText != "DEFAULT*" && currentText != "DEFAULT") {
+            // Buscar el ID del preset por nombre
+            for (int id : allIds) {
+                // Guardar el ID actual temporalmente
+                int tempId = presetArea.presetMenu.getSelectedId();
+                
+                // Seleccionar temporalmente para obtener el texto
+                presetArea.presetMenu.setSelectedId(id);
+                juce::String menuText = presetArea.presetMenu.getText();
+                
+                // Restaurar el ID previo
+                presetArea.presetMenu.setSelectedId(tempId);
+                
+                // Comparar con el texto actual
+                if (menuText == currentText || menuText == "[F] " + currentText.substring(4)) {
+                    currentId = id;
+                    break;
+                }
+            }
+        }
+        
+        // Si aún no tenemos un ID válido, empezar desde el primero
+        if (currentId == 0) {
+            currentId = allIds[0];
+        }
     }
     
     // Buscar el ID actual en la lista de todos los IDs
@@ -3326,13 +3360,40 @@ void JCBCompressorAudioProcessorEditor::selectPreviousPreset()
     
     int currentId = presetArea.presetMenu.getSelectedId();
     
-    // Si no hay selección actual, seleccionar el último preset
+    // Si no hay selección actual (preset modificado), buscar el preset base
     if (currentId == 0) {
-        presetArea.presetMenu.setSelectedId(allIds.back());
-        if (presetArea.presetMenu.onChange) {
-            presetArea.presetMenu.onChange();
+        // Obtener el nombre del preset actual sin asterisco
+        juce::String currentText = presetArea.presetMenu.getTextWhenNothingSelected();
+        if (currentText.endsWith("*")) {
+            currentText = currentText.dropLastCharacters(1).trimEnd();
         }
-        return;
+        
+        // Si hay un texto válido, buscar el preset correspondiente
+        if (currentText.isNotEmpty() && currentText != "DEFAULT*" && currentText != "DEFAULT") {
+            // Buscar el ID del preset por nombre
+            for (int id : allIds) {
+                // Guardar el ID actual temporalmente
+                int tempId = presetArea.presetMenu.getSelectedId();
+                
+                // Seleccionar temporalmente para obtener el texto
+                presetArea.presetMenu.setSelectedId(id);
+                juce::String menuText = presetArea.presetMenu.getText();
+                
+                // Restaurar el ID previo
+                presetArea.presetMenu.setSelectedId(tempId);
+                
+                // Comparar con el texto actual
+                if (menuText == currentText || menuText == "[F] " + currentText.substring(4)) {
+                    currentId = id;
+                    break;
+                }
+            }
+        }
+        
+        // Si aún no tenemos un ID válido, empezar desde el último
+        if (currentId == 0) {
+            currentId = allIds.back();
+        }
     }
     
     // Buscar el ID actual en la lista de todos los IDs
@@ -3545,7 +3606,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v0.9.993 beta\nPlugin educativo open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBCompressor: compresor de audio v1.0.0-alpha.1\nPlugin educativo open source\nClick para créditos");
         if (key == "thd") return JUCE_UTF8("THRESHOLD: nivel donde comienza la compresión\nSeñales sobre este nivel se comprimen\nRango: -60 a 0 dB | Por defecto: -18 dB");
         if (key == "ratio") return JUCE_UTF8("RATIO: cantidad de compresión aplicada\nRelación entrada/salida sobre el threshold\nRango: 1:1 a 20:1 | Por defecto: 4:1");
         if (key == "knee") return JUCE_UTF8("KNEE: suavidad de la transición en el threshold\nCrea una curva gradual en vez de ángulo duro\nRango: 0 a 30 dB | Por defecto: 0 dB");
@@ -3590,7 +3651,7 @@ juce::String JCBCompressorAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBCompressor: audio compressor v0.9.993 beta\nOpen source educational plugin\nClick for credits";
+        if (key == "title") return "JCBCompressor: audio compressor v1.0.0-alpha.1\nOpen source educational plugin\nClick for credits";
         if (key == "thd") return "THRESHOLD: level where compression begins\nSignals above this level are compressed\nRange: -60 to 0 dB | Default: -18 dB";
         if (key == "ratio") return "RATIO: amount of compression applied\nInput/output relationship above threshold\nRange: 1:1 to 20:1 | Default: 4:1";
         if (key == "knee") return "KNEE: smoothness of the threshold transition\nCreates a gradual curve instead of hard angle\nRange: 0 to 30 dB | Default: 0 dB";

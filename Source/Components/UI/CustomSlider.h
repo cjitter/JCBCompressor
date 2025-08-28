@@ -294,7 +294,6 @@ public:
 
 /**
  * Custom attachment usando ParameterAttachment + UndoableParameterHelper
- * Solución probada y testeada en jr-granular
  * APVTS con nullptr = no undo automático, undo manual solo para gestos de usuario
  */
 class CustomSliderAttachment : private juce::Slider::Listener

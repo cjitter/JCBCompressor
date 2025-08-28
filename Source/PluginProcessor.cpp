@@ -20,7 +20,7 @@
 //==============================================================================
 JCBCompressorAudioProcessor::JCBCompressorAudioProcessor()
     : juce::AudioProcessor(createBusesProperties()),
-      apvts(*this, nullptr, "PARAMETERS", createParameterLayout()),  // nullptr = no automatic undo (proven solution tested on jr-granular)
+      apvts(*this, nullptr, "PARAMETERS", createParameterLayout()),
       m_CurrentBufferSize(0),
       editorSize(1260, 360),
       lastPreset(0),
@@ -148,76 +148,6 @@ JCBCompressorAudioProcessor::~JCBCompressorAudioProcessor()
 //==============================================================================
 // MÉTODOS PRINCIPALES DEL AUDIOPROCESSOR
 //==============================================================================
-// void JCBCompressorAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
-// {
-//     // Configuración de canales en modo debug eliminada para release
-//
-//     // Inicializar sample rate y vector size
-//     m_PluginState->sr = sampleRate;
-//     m_PluginState->vs = samplesPerBlock;
-//
-//     // Pre-asignar buffers con tamaño máximo esperado para evitar allocations en audio thread
-//     // Usar un tamaño seguro que cubra la mayoría de casos (4096 samples es común máximo)
-//     const long maxExpectedBufferSize = juce::jmax(static_cast<long>(samplesPerBlock), 4096L);
-//     assureBufferSize(maxExpectedBufferSize);
-//
-//     // Pre-asignar vectors de waveform data para evitar resize en audio thread
-//     {
-//         std::lock_guard<std::mutex> lock(waveformMutex);
-//         const size_t maxWaveformSize = static_cast<size_t>(maxExpectedBufferSize);
-//         currentInputSamples.resize(maxWaveformSize);
-//         currentProcessedSamples.resize(maxWaveformSize);
-//         currentGainReductionSamples.resize(maxWaveformSize);
-//     }
-//
-//     // Inicializar latencia basada en el tiempo de lookahead
-//     auto latenciaMs = apvts.getRawParameterValue("n_LOOKAHEAD")->load();
-//
-//     // Cálculo estándar: ms * (sampleRate / 1000)
-//     int latenciaSamples = static_cast<int>(latenciaMs * sampleRate / 1000.0);
-//     latenciaSamples = juce::jmax(0, latenciaSamples);
-//
-//     // Aplicar Lookahead teniendo en cuenta el sample generado en gen~
-//     setLatencySamples(latenciaSamples+1);
-//
-//     // Initialize atomic meter values
-//     // CRITICAL: Changed from SmoothedValue to atomic - no reset() needed
-//     leftInputRMS.store(-100.0f, std::memory_order_relaxed);
-//     rightInputRMS.store(-100.0f, std::memory_order_relaxed);
-//
-//     leftOutputRMS.store(-100.0f, std::memory_order_relaxed);
-//     rightOutputRMS.store(-100.0f, std::memory_order_relaxed);
-//
-//     gainReduction.store(0.0f, std::memory_order_relaxed);
-//
-//     leftSC.store(-100.0f, std::memory_order_relaxed);
-//     rightSC.store(-100.0f, std::memory_order_relaxed);
-//
-//     // Configurar buffers auxiliares
-//     grBuffer.setSize(getTotalNumOutputChannels(), samplesPerBlock);
-//     grBuffer.clear();
-//
-//     trimInputBuffer.setSize(2, samplesPerBlock);
-//     trimInputBuffer.clear();
-//
-//     sidechainBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
-//     sidechainBuffer.clear();
-//
-//     // Inicializar buffers de forma de onda
-//     currentInputSamples.resize(samplesPerBlock, 0.0f);
-//     currentProcessedSamples.resize(samplesPerBlock, 0.0f);
-//
-//     // IMPORTANTE: Re-sincronizar todos los parámetros con Gen~ en prepareToPlay
-//     // Esto asegura que los valores estén correctos cuando el DAW comienza a reproducir
-//     for (int i = 0; i < JCBCompressor::num_params(); i++)
-//     {
-//         auto paramName = juce::String(JCBCompressor::getparametername(m_PluginState, i));
-//         if (auto* param = apvts.getRawParameterValue(paramName)) {
-//             float value = param->load();
-//             JCBCompressor::setparameter(m_PluginState, i, value, nullptr);
-//         }
-//     }
-// }
 
 void JCBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
@@ -291,7 +221,7 @@ void JCBCompressorAudioProcessor::prepareToPlay (double sampleRate, int samplesP
     {
         const int chans = getTotalNumOutputChannels();
         // Obtener máximo lookahead del parámetro
-        float maxLAMs = 200.0f; // fallback, ajustar según tu rango de lookahead
+        float maxLAMs = 15.0f; // fallback, ajustar según tu rango de lookahead
         if (auto* p = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("n_LOOKAHEAD")))
             maxLAMs = p->range.end;
         
@@ -384,7 +314,7 @@ void JCBCompressorAudioProcessor::processBlockCommon(juce::AudioBuffer<float>& b
     const int numSamples  = buffer.getNumSamples();
     const int numChannels = buffer.getNumChannels();
 
-    // === Ajustes de buffers (idéntico a tu processBlock actual) ===
+    // === Ajustes de buffers (idéntico al processBlock previo) ===
     if (grBuffer.getNumChannels() != getTotalNumOutputChannels()
      || grBuffer.getNumSamples()  != numSamples)
         grBuffer.setSize(getTotalNumOutputChannels(), numSamples, false, false, true);
@@ -1028,7 +958,7 @@ bool JCBCompressorAudioProcessor::isBusesLayoutSupported(const juce::AudioProces
  * Crear el layout de parámetros del plugin
  * CRÍTICO: Define todos los parámetros del compresor en orden alfabético
  * Incluye configuración de rangos, valores por defecto y metadata para cada parámetro
- * Version hint 21 fuerza re-escaneo en hosts para parámetros renombrados
+ * Version hint + fuerza re-escaneo en hosts para parámetros renombrados
  */
 juce::AudioProcessorValueTreeState::ParameterLayout JCBCompressorAudioProcessor::createParameterLayout()
 {
@@ -1389,56 +1319,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBCompressorAudioProcessor:
    return { params.begin(), params.end() };
 }
 
-
 //==============================================================================
 // GESTIÓN DE PARÁMETROS
 //==============================================================================
-// void JCBCompressorAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
-// {
-//     // Validar valores mínimos para ATK y REL
-//     if (parameterID == "d_ATK" && newValue < 0.1f) {
-//         newValue = 0.1f;
-//     }
-//     if (parameterID == "e_REL" && newValue < 0.1f) {
-//         newValue = 0.1f;
-//     }
-//
-//     // Buscar el índice correcto en Gen~ basado en el nombre del parámetro
-//     int genIndex = -1;
-//     for (int i = 0; i < JCBCompressor::num_params(); i++) {
-//         if (parameterID == JCBCompressor::getparametername(m_PluginState, i)) {
-//             genIndex = i;
-//             break;
-//         }
-//     }
-//
-//     if (genIndex < 0) {
-//         return;  // Parámetro no encontrado en Gen~
-//     }
-//
-//
-//     JCBCompressor::setparameter(m_PluginState, genIndex, newValue, nullptr);
-//
-//     // Actualizar latencia cuando cambia el lookahead
-//     if (parameterID == "n_LOOKAHEAD")
-//     {
-//         double sampleRate = getSampleRate();
-//
-//         // Solo actualizar si tenemos un sample rate válido
-//         if (sampleRate > 0)
-//         {
-//             // Cálculo estándar de latencia: ms * (sampleRate / 1000)
-//             int latenciaSamples = static_cast<int>(newValue * sampleRate / 1000.0);
-//
-//             // Asegurar que nunca sea negativo
-//             latenciaSamples = juce::jmax(0, latenciaSamples);
-//
-//             setLatencySamples(latenciaSamples+1);
-//
-//             // Lookahead latency compensation updated
-//         }
-//     }
-// }
 
 void JCBCompressorAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
@@ -1573,7 +1456,6 @@ juce::String JCBCompressorAudioProcessor::getPluginFormat() const noexcept
     }
 }
 
-
 //==============================================================================
 // CAPTURA DE DATOS PARA VISUALIZACIÓN DE ENVOLVENTES
 //==============================================================================
@@ -1660,13 +1542,11 @@ float JCBCompressorAudioProcessor::getMaxGainReduction() const noexcept
     return gainReduction.load(std::memory_order_relaxed);
 }
 
-
 bool JCBCompressorAudioProcessor::isPlaybackActive() const noexcept
 {
     // Siempre activo para decay permanente como plugins profesionales
     return true;
 }
-
 
 //==============================================================================
 // GESTIÓN DEL EDITOR
@@ -1675,7 +1555,6 @@ juce::AudioProcessorEditor* JCBCompressorAudioProcessor::createEditor()
 {
     return new JCBCompressorAudioProcessorEditor(*this, guiUndoManager);
 }
-
 
 //==============================================================================
 // SERIALIZACIÓN DEL ESTADO
@@ -1881,8 +1760,6 @@ void JCBCompressorAudioProcessor::copyBtoA()
     stateB.captureFrom(apvts);
     stateA = stateB;
 }
-
-// isBeingAutomated() eliminado - ya no necesario con sistema undo simplificado
 
 //==============================================================================
 // MÉTODOS LEGACY
