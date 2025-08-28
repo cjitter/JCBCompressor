@@ -2568,7 +2568,7 @@ void JCBCompressorAudioProcessorEditor::updateMeterStates()
     // Ocultar gain reduction meter cuando SOLO SC está activo (no hay compresión activa)
     // También considerar si graphics está activo para mantener consistencia
     bool graphicsActive = utilityButtons.runGraphicsButton.getToggleState();
-    grMeter.setVisible(!soloScActive && !graphicsActive);
+    grMeter.setVisible(!soloScActive && graphicsActive);
     
     // Actualizar gradiente de salida para modo bypass
     outputMeterL.setBypassMode(bypassActive);
