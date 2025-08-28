@@ -61,39 +61,21 @@ cmake --build build-release   # Para Release
 
 ## Características principales
 
-- **Ajuste de entrada** (trim ±12 dB) para ambas cadenas.
-- **Procesamiento sidechain** interno y externo con filtros paso alto y bajo, 2º/4º orden.
-- **Tres modos de detección**: sharp (sliding RMS), expo RMS y slow RMS, con interpolación continua y control adicional de suavizado.
-- **Ajuste independiente de reacción pico/RMS**.
-- **Compresión con softknee** lineal de primer orden.
-- **Controles estándar**: threshold (-60 a 0 dB), ratio (1:1 a 20:1), attack (0.1 a 250 ms), release (0.1 a 1000 ms), knee (0 a 30 dB).
-- **Ganancia de compensación** (makeup gain ±12 dB) y **auto gain** (hasta 70% de recuperación).
-- **Compresión paralela** mediante suma 100% señal seca/comprimida.
-- **Softclipping asimétrico**, aplicado tras compresión y makeup gain.
-- **Control Dry/Wet** (-6 dB a 50%) para mezcla de señal post-procesado (post softclip).
-- **Procesamiento estéreo** con opción estéreo link.
-- **Monitorización avanzada**: escucha delta (entrada/salida) y solo sidechain.
-- **Visualización gráfica**: forma de onda, medidores y reducción de ganancia.
-- **Gestión de presets** (usuario y fábrica).
-- **Bypass interno**, independiente del DAW.
-- **Formatos disponibles**: VST3, AU y AAX.
-- **Visualización del diagrama de bloques**: Acceso al diagrama completo del compresor con posibilidad de explorar cada bloque y copiar el código GenExpr para usar directamente en objetos Codebox o gen.codebox~ (Max 9).
-
-## Novedades v1.0.0-alpha.1
-
-- **Corrección de gestión de latencia y sample rate**: ahora el plugin sincroniza correctamente el SR/VS internos de **Gen~** mediante `reset()` en `prepareToPlay`, garantizando que los cálculos de lookahead coincidan con los reportados al host.
-- **Latencia consistente en todos los hosts**: se reporta +1 muestra de retardo mínimo (por el retardo intrínseco de Gen~), y se calcula exactamente `ms * SR / 1000` para el lookahead. Verificado en *Pro Tools* con null tests.
-- **Softclip refinado**: aplicado únicamente en la rama **WET** (y bypassado en modo *Delta*), evitando residuos o filtrados no deseados en modo **DRY**.
-- **Null tests verificados**:
-  - DRY 100% ⇒ cancelación perfecta.
-  - WET 100% ⇒ solo se escucha el delta de compresión.
-  - Lookahead 0 ms ⇒ latencia real de 1 muestra (compensada).
-  - Lookahead 10 ms @ 48 kHz ⇒ 480 muestras exactas, commit en fase.
-- **Thread safety mejorada**: eliminadas todas las *assertions* de **pluginval** (strictness level 10) mediante sistema de atómicos y `Timer` para actualizaciones UI thread-safe. Verificado funcionamiento estable con automatización en múltiples DAWs.
-- Implementación sistema de bypass compensado (portado de JCBTransient)
-- v1.0.0-alpha.1 validada con éxito en **AUVAL**, **pluginval**, **VST3 validator** y **AAX validator**.
-
-Estas mejoras consolidan la estabilidad y preparan la transición hacia la versión **1.0.0 alpha**.
+- **Compresor de rango dinámico** con controles de threshold, ratio, attack, release y knee.
+- **Control de entrada y salida** (trim y makeup) ±12 dB, con opción de auto gain (hasta 70%).
+- **Procesamiento sidechain** interno y externo con filtros HPF/LPF variables (20 Hz – 20 kHz), en 2º o 4º orden.
+- **Tres modos de detección**: sharp (sliding RMS), RMS exponencial y RMS lento, con interpolación continua.
+- **Compresión con softknee** ajustable de 0 a 30 dB.
+- **Paralelo integrado**: mezcla Dry/Wet y compresión paralela mediante suma de señal seca y comprimida.
+- **Softclip de salida** asimétrico, aplicado tras la compresión.
+- **Modo Delta activable**, para escuchar únicamente la diferencia entre señal procesada y original.
+- **Procesamiento estéreo**, con opción de estéreo link.
+- **Visualización gráfica** en tiempo real: forma de onda, medidores y reducción de ganancia.
+- **Gestión de presets** completa (fábrica y usuario).
+- **Bypass interno** con transición suave.
+- **Modo lookahead** de 0 a 10 ms, con compensación exacta de latencia en todos los hosts.
+- **Thread safety mejorada**, con actualizaciones de interfaz seguras y verificado en pluginval.
+- **Visualización del diagrama de bloques**, con acceso al código GenExpr de cada sección.
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
